@@ -20,6 +20,6 @@ bool MachineConfig::load_json(const std::string& path,std::string& e){
 }
 bool MachineConfig::save_json(const std::string& path,std::string&e)const{
  std::ofstream f(path);if(!f){e="cannot write machine config";return false;}
- f<<"{\n  \"name\": \""<<name_<<"\",\n  \"X_min\": "<<k_.X.minimum<<", \"X_max\": "<<k_.X.maximum<<",\n  \"Y_min\": "<<k_.Y.minimum<<", \"Y_max\": "<<k_.Y.maximum<<",\n  \"Z_min\": "<<k_.Z.minimum<<", \"Z_max\": "<<k_.Z.maximum<<",\n  \"A_min\": "<<k_.A.minimum<<", \"A_max\": "<<k_.A.maximum<<",\n  \"C_min\": "<<k_.C.minimum<<", \"C_max\": "<<k_.C.maximum<<",\n  \"a_to_c\": "<<k_.a_to_c<<", \"c_to_tool\": "<<k_.c_to_tool<<"\n}\n";return true;
+ f<<"{\n  \"name\": \""<<name_<<"\",\n  \"X_min\": "<<k_.X.minimum<<", \"X_max\": "<<k_.X.maximum<<",\n  \"Y_min\": "<<k_.Y.minimum<<", \"Y_max\": "<<k_.Y.maximum<<",\n  \"Z_min\": "<<k_.Z.minimum<<", \"Z_max\": "<<k_.Z.maximum<<",\n  \"A_min\": "<<k_.A.minimum<<", \"A_max\": "<<k_.A.maximum<<",\n  \"C_min\": "<<k_.C.minimum<<", \"C_max\": "<<k_.C.maximum<<",\n  \"a_to_c\": "<<k_.a_to_c<<", \"c_to_tool\": "<<k_.c_to_tool<<",\n  \"A_axis_x\": "<<k_.a_axis.x<<", \"A_axis_y\": "<<k_.a_axis.y<<", \"A_axis_z\": "<<k_.a_axis.z<<",\n  \"C_axis_x\": "<<k_.c_axis.x<<", \"C_axis_y\": "<<k_.c_axis.y<<", \"C_axis_z\": "<<k_.c_axis.z<<"\n}\n";return true;
 }
 }
