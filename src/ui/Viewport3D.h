@@ -4,7 +4,7 @@
 #include <vector>
 #include "cnc/Runtime.h"
 class Viewport3D final : public QOpenGLWidget, protected QOpenGLFunctions_4_5_Core {
- cnc::Runtime* runtime_{}; std::vector<QPointF> path_;
+ cnc::Runtime* runtime_{}; 
 public:
  explicit Viewport3D(cnc::Runtime* runtime,QWidget* parent=nullptr):QOpenGLWidget(parent),runtime_(runtime){}
 protected:
