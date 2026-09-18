@@ -59,7 +59,12 @@ void Viewport3D::drawMachine(QPainter& p,int cx,int cy){
  QPointF base=project(0,0,0), head=project(s.X,s.Y,s.Z);
  p.setPen(QPen(Qt::gray,6));p.drawLine(project(-260,-180,0),project(260,-180,0));
  p.setPen(QPen(Qt::white,3));p.drawLine(project(-180,0,0),project(180,0,0));
- p.setPen(QPen(Qt::yellow,4));p.drawLine(head,project(s.X,s.Y,s.Z-35));
+ double ar=s.A*3.1415926535/180.0, cr=s.C*3.1415926535/180.0;
+ double ax=std::sin(ar)*std::cos(cr), ay=std::sin(ar)*std::sin(cr), az=-std::cos(ar);
+ QPointF tip=project(s.X-ax*70,s.Y-ay*70,s.Z-az*70);
+ p.setPen(QPen(Qt::yellow,5));p.drawLine(head,tip);
+ p.setPen(QPen(Qt::magenta,3));p.drawLine(head,project(s.X-ax*35,s.Y-ay*35,s.Z-az*35));
+ p.drawText(tip+QPointF(8,-8),QString("TOOL A%1 C%2").arg(s.A,0,'f',1).arg(s.C,0,'f',1));
  p.setPen(QPen(Qt::cyan,3));p.drawEllipse(head-QPointF(8,8),QPointF(8,8));
  p.drawText(head+QPointF(12,20),QString("HEAD A%1 C%2").arg(s.A,0,'f',1).arg(s.C,0,'f',1));
 }
