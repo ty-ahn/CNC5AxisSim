@@ -24,7 +24,7 @@ int main(){
  cnc::Runtime held; held.hold(); assert(held.feed_hold()); held.clear_alarm(); assert(!held.feed_hold());
  cnc::ProgramLoader loader; assert(loader.load_text("N10 G0 X0\n\nN20 G1 X10 F500\n",e)); assert(loader.lines().size()==2&&loader.lines()[1].line_index==3);
  auto vr=cnc::VerifyEngine::run(loader.blocks()); assert(vr.passed&&vr.executed==2);
- cnc::Runtime flow2; cnc::ProgramExecutor ex2(flow2); cnc::ProgramLoader mainp, subp; assert(mainp.load_text("N10 CALL P100\\nN20 G0 X20\\n",e)); assert(subp.load_text("N100 G0 X5\\nN110 RET\\n",e)); ex2.load(mainp.blocks()); ex2.add_subprogram(100,subp.blocks()); assert(ex2.start()); while(ex2.state()==cnc::ExecutionState::Running) ex2.step(); assert(ex2.state()==cnc::ExecutionState::Completed&&std::abs(flow2.state().X-20)<1e-9);
+ cnc::Runtime flow2; cnc::ProgramExecutor ex2(flow2); cnc::ProgramLoader mainp, subp; assert(mainp.load_text("N10 CALL P100\nN20 G0 X20\n",e)); assert(subp.load_text("N100 G0 X5\nN110 RET\n",e)); ex2.load(mainp.blocks()); ex2.add_subprogram(100,subp.blocks()); assert(ex2.start()); while(ex2.state()==cnc::ExecutionState::Running) ex2.step(); assert(ex2.state()==cnc::ExecutionState::Completed&&std::abs(flow2.state().X-20)<1e-9);
  cnc::Runtime flow; flow.variables().set(1,10); cnc::ProgramExecutor ex(flow); cnc::ProgramLoader fl; assert(fl.load_text("N10 IF R1>5 GOTOF 30\nN20 G0 X99\nN30 G0 X10\n",e)); ex.load(fl.blocks()); assert(ex.start()); assert(flow.state().X==10);
  return 0;
 }
