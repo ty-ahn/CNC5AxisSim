@@ -15,18 +15,22 @@ bool CollisionManager::segment_aabb(const Vec3&p0,const Vec3&p1,const Aabb&b,dou
 
 CollisionEvent CollisionManager::check_holder_machine(const Vec3&p0,const Vec3&p1,double radius)const{
  CollisionEvent best{CollisionType::HolderMachine,{},0,false};if(radius<0)return best;
- for(const auto&body:machine_bodies_){Aabb b=body.bounds;b.min.x-=radius;b.min.y-=radius;b.min.z-=radius;b.max.x+=radius;b.max.y+=radius;b.max.z+=radius;double pen;Vec3 hit;if(segment_aabb(p0,p1,b,pen,hit)&&(!best.collision||pen>best.penetration))best={CollisionType::HolderMachine,hit,pen,true};}
+ for(const auto&body:machine_bodies_){
+  Aabb b=body.bounds;
+  if(local_to_world_){Vec3 mn{1e300,1e300,1e300},mx{-1e300,-1e300,-1e300};for(int ix=0;ix<2;++ix)for(int iy=0;iy<2;++iy)for(int iz=0;iz<2;++iz){Vec3 q{ix?body.bounds.max.x:body.bounds.min.x,iy?body.bounds.max.y:body.bounds.min.y,iz?body.bounds.max.z:body.bounds.min.z};q=local_to_world_(body.name,q);mn.x=std::min(mn.x,q.x);mn.y=std::min(mn.y,q.y);mn.z=std::min(mn.z,q.z);mx.x=std::max(mx.x,q.x);mx.y=std::max(mx.y,q.y);mx.z=std::max(mx.z,q.z);}b={mn,mx};}
+  b.min.x-=radius;b.min.y-=radius;b.min.z-=radius;b.max.x+=radius;b.max.y+=radius;b.max.z+=radius;double pen;Vec3 hit;if(segment_aabb(p0,p1,b,pen,hit)&&(!best.collision||pen>best.penetration))best={CollisionType::HolderMachine,hit,pen,true};}
  return best;
 }
 
 CollisionEvent CollisionManager::check_holder_mesh(const Vec3&p0,const Vec3&p1,double radius)const{
  CollisionEvent best{CollisionType::HolderMachine,{},0,false};if(radius<0)return best;
  for(const auto&body:machine_bodies_) if(body.bvh&&body.mesh&&!body.bvh->empty()){
+  Vec3 q0=p0,q1=p1;if(world_to_local_){q0=world_to_local_(body.name,p0);q1=world_to_local_(body.name,p1);}
   Aabb b=body.bounds;b.min.x-=radius;b.min.y-=radius;b.max.x+=radius;b.max.y+=radius;b.min.z-=radius;b.max.z+=radius;
   double pen;Vec3 hit;
-  if(!segment_aabb(p0,p1,b,pen,hit))continue;
+  if(!segment_aabb(q0,q1,b,pen,hit))continue;
   Vec3 exact{};
-  if(body.bvh->segment_hit(p0,p1,radius,&exact)){
+  if(body.bvh->segment_hit(q0,q1,radius,&exact)){if(local_to_world_)exact=local_to_world_(body.name,exact);
    double approxPen=radius;
    if(!best.collision||approxPen>best.penetration)best={CollisionType::HolderMachine,exact,approxPen,true};
   }
@@ -36,7 +40,7 @@ CollisionEvent CollisionManager::check_holder_mesh(const Vec3&p0,const Vec3&p1,d
 
 std::vector<MachineCollisionSnapshot> CollisionManager::check_all_machine_bodies(const Vec3&p0,const Vec3&p1,double radius)const{
  std::vector<MachineCollisionSnapshot> out;if(radius<0)return out;
- for(const auto&body:machine_bodies_){Aabb b=body.bounds;b.min.x-=radius;b.min.y-=radius;b.min.z-=radius;b.max.x+=radius;b.max.y+=radius;b.max.z+=radius;double pen;Vec3 hit;if(segment_aabb(p0,p1,b,pen,hit))out.push_back({body.name,{CollisionType::HolderMachine,hit,pen,true}});}
+ for(const auto&body:machine_bodies_){Aabb b=body.bounds;if(local_to_world_){Vec3 mn{1e300,1e300,1e300},mx{-1e300,-1e300,-1e300};for(int ix=0;ix<2;++ix)for(int iy=0;iy<2;++iy)for(int iz=0;iz<2;++iz){Vec3 q{ix?body.bounds.max.x:body.bounds.min.x,iy?body.bounds.max.y:body.bounds.min.y,iz?body.bounds.max.z:body.bounds.min.z};q=local_to_world_(body.name,q);mn.x=std::min(mn.x,q.x);mn.y=std::min(mn.y,q.y);mn.z=std::min(mn.z,q.z);mx.x=std::max(mx.x,q.x);mx.y=std::max(mx.y,q.y);mx.z=std::max(mx.z,q.z);}b={mn,mx};}b.min.x-=radius;b.min.y-=radius;b.min.z-=radius;b.max.x+=radius;b.max.y+=radius;b.max.z+=radius;double pen;Vec3 hit;if(segment_aabb(p0,p1,b,pen,hit))out.push_back({body.name,{CollisionType::HolderMachine,hit,pen,true}});}
  return out;
 }
 }
