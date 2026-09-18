@@ -16,6 +16,7 @@ void Viewport3D::paintGL(){
  p.drawText(18,52,QString("XYZAC  X:%1  Y:%2  Z:%3  A:%4  C:%5")
    .arg(s.X,0,'f',2).arg(s.Y,0,'f',2).arg(s.Z,0,'f',2).arg(s.A,0,'f',2).arg(s.C,0,'f',2));
  const int cx=width()/2, cy=height()/2;
+ drawMachine(p,cx,cy);
  p.setPen(QPen(Qt::gray,2));p.drawLine(cx-260,cy,cx+260,cy);p.drawLine(cx,cy-180,cx,cy+180);
  p.setPen(QPen(Qt::darkGray,1));
  auto& motion=runtime_->last_motion();
@@ -50,3 +51,15 @@ void Viewport3D::paintGL(){
 void Viewport3D::mousePressEvent(QMouseEvent* e){last_mouse_=e->pos();}
 void Viewport3D::mouseMoveEvent(QMouseEvent* e){if(e->buttons()&Qt::LeftButton){auto d=e->pos()-last_mouse_;yaw_+=d.x()*0.5f;pitch_=std::clamp(pitch_+d.y()*0.5f,-89.0f,89.0f);last_mouse_=e->pos();update();}}
 void Viewport3D::wheelEvent(QWheelEvent* e){zoom_=std::clamp(zoom_+e->angleDelta().y()/1200.0f,0.2f,5.0f);update();}
+
+void Viewport3D::drawMachine(QPainter& p,int cx,int cy){
+ if(!runtime_) return;
+ auto s=runtime_->state();
+ auto project=[&](double X,double Y,double Z){double yr=yaw_*3.1415926535/180.0,pr=pitch_*3.1415926535/180.0;double x=X*std::cos(yr)-Y*std::sin(yr);double y=X*std::sin(yr)+Y*std::cos(yr);double sy=y*std::cos(pr)-Z*std::sin(pr);return QPointF(cx+x*1.5*zoom_,cy-sy*1.5*zoom_);};
+ QPointF base=project(0,0,0), head=project(s.X,s.Y,s.Z);
+ p.setPen(QPen(Qt::gray,6));p.drawLine(project(-260,-180,0),project(260,-180,0));
+ p.setPen(QPen(Qt::white,3));p.drawLine(project(-180,0,0),project(180,0,0));
+ p.setPen(QPen(Qt::yellow,4));p.drawLine(head,project(s.X,s.Y,s.Z-35));
+ p.setPen(QPen(Qt::cyan,3));p.drawEllipse(head-QPointF(8,8),QPointF(8,8));
+ p.drawText(head+QPointF(12,20),QString("HEAD A%1 C%2").arg(s.A,0,'f',1).arg(s.C,0,'f',1));
+}
