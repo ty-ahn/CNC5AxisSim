@@ -62,10 +62,10 @@ void Viewport3D::paintGL(){
    vbo_.allocate(verts.data(),int(verts.size()*sizeof(float)));
    shader_->enableAttributeArray("position"); shader_->setAttributeBuffer("position",GL_FLOAT,0,3,6*sizeof(float));
    shader_->enableAttributeArray("vertexColor"); shader_->setAttributeBuffer("vertexColor",GL_FLOAT,3*sizeof(float),3,6*sizeof(float));
-   int machineFloats=0;
-   for(const auto& g:runtime_->machine_geometry()) if(g.loaded()) machineFloats+=int(g.triangles().size()*18);
-   if(machineFloats>0) glDrawArrays(GL_TRIANGLES,0,machineFloats/6);
-   const int stockStart=machineFloats/6;
+   int machineVertices=0;
+   for(const auto& g:runtime_->machine_geometry()) if(g.loaded()) machineVertices+=int(g.triangles().size()*3);
+   if(machineVertices>0) glDrawArrays(GL_TRIANGLES,0,machineVertices);
+   const int stockStart=machineVertices;
    if(stockStart<int(verts.size()/6)) glDrawArrays(GL_POINTS,stockStart,int(verts.size()/6)-stockStart);
    vbo_.release(); vao_.release(); shader_->release();
   }
