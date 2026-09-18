@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <regex>
-#include <cmath>
+#include <cmath>\n#include <algorithm>
 namespace cnc {
 static bool num(const std::string&s,const std::string& key,double&v){std::regex r("\""+key+"\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9]+)?)");std::smatch m;if(!std::regex_search(s,m,r))return false;v=std::stod(m[1]);return true;}
 bool MachineConfig::load_json(const std::string& path,std::string& e){
@@ -15,7 +15,10 @@ bool MachineConfig::load_json(const std::string& path,std::string& e){
  std::regex nr("\"name\"\\s*:\\s*\"([^\"]+)\"");std::smatch m;if(std::regex_search(s,m,nr))name_=m[1];
  nodes_.clear(); const char* keys[]={"X","Y","Z","A","C"};
  for(int i=0;i<5;++i){double lo=0,hi=0;num(s,std::string(keys[i])+"_min",lo);num(s,std::string(keys[i])+"_max",hi);MachineNode n;n.name=keys[i];n.type=i<3?MachineNodeType::LinearAxis:MachineNodeType::RotaryAxis;n.min=lo;n.max=hi;n.wrap=(i==4);n.parent=i==0?"":i==1?"X":i==2?"Y":i==3?"Z":"A";n.axis=i==3?k_.a_axis:k_.c_axis;n.pivot=i==3?k_.pivot_a:k_.pivot_c;nodes_.push_back(n);}
- return true;
+ std::regex body(R"("body_([A-Za-z0-9_]+)_(min_x|max_x|min_y|max_y|min_z|max_z)"\s*:\s*(-?[0-9]+(?:\.[0-9]+)?))");
+ struct B{MachineNode n;bool seen[6]{};}; std::vector<B> bodies;
+ for(std::sregex_iterator it(s.begin(),s.end(),body),endit;it!=endit;++it){std::string name=(*it)[1],key=(*it)[2];double v=std::stod((*it)[3]);auto bi=std::find_if(bodies.begin(),bodies.end(),[&](const B&b){return b.n.name==name;});if(bi==bodies.end()){B b{};b.n.name=name;b.n.type=MachineNodeType::Fixture;bi=bodies.insert(bodies.end(),b)-1;}int k=key=="min_x"?0:key=="max_x"?1:key=="min_y"?2:key=="max_y"?3:key=="min_z"?4:5;bi->n.collision_enabled=true;bi->n.collision_bounds.min.x=k==0?v:bi->n.collision_bounds.min.x;bi->n.collision_bounds.max.x=k==1?v:bi->n.collision_bounds.max.x;bi->n.collision_bounds.min.y=k==2?v:bi->n.collision_bounds.min.y;bi->n.collision_bounds.max.y=k==3?v:bi->n.collision_bounds.max.y;bi->n.collision_bounds.min.z=k==4?v:bi->n.collision_bounds.min.z;bi->n.collision_bounds.max.z=k==5?v:bi->n.collision_bounds.max.z;}
+ for(const auto& b:bodies)nodes_.push_back(b.n); return true;
 }
 bool MachineConfig::save_json(const std::string& path,std::string&e)const{
  std::ofstream f(path);if(!f){e="cannot write machine config";return false;}
