@@ -27,7 +27,7 @@ Vec3 Kinematics::configured_axis_from_ac(double A,double C) const{
  Vec3 v=rotate({0,0,-1},aa,A);
  return normalize(rotate(v,cAxisWorld,C));
 }
-Vec3 Kinematics::tcp_from_machine(const MachineState&s,double L){
+Vec3 Kinematics::tcp_from_machine(const MachineState&s,double L) const{
  Vec3 aa=normalize(config_.a_axis),cc=normalize(config_.c_axis);
  if(norm(aa)<1e-12||norm(cc)<1e-12)return {s.X,s.Y,s.Z};
  Vec3 cLocal=sub(config_.pivot_c,config_.pivot_a);
