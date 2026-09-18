@@ -4,7 +4,26 @@
 #include <cmath>
 #include <algorithm>
 #include <QMatrix4x4>
-namespace { cnc::Vec3 rv(cnc::Vec3 v, cnc::Vec3 axis, double deg){constexpr double pi=3.14159265358979323846;double n=std::sqrt(axis.x*axis.x+axis.y*axis.y+axis.z*axis.z);if(n<1e-12)return v;axis={axis.x/n,axis.y/n,axis.z/n};double r=deg*pi/180.0,co=std::cos(r),si=std::sin(r);cnc::Vec3 cr{axis.y*v.z-axis.z*v.y,axis.z*v.x-axis.x*v.z,axis.x*v.y-axis.y*v.x};double d=axis.x*v.x+axis.y*v.y+axis.z*v.z;return {v.x*co+cr.x*si+axis.x*d*(1-co),v.y*co+cr.y*si+axis.y*d*(1-co),v.z*co+cr.z*si+axis.z*d*(1-co)};} void rotatePivot(cnc::Vec3& p,const cnc::Vec3& pivot,const cnc::Vec3& axis,double deg){p.x-=pivot.x;p.y-=pivot.y;p.z-=pivot.z;p=rv(p,axis,deg);p.x+=pivot.x;p.y+=pivot.y;p.z+=pivot.z;} cnc::Vec3 transformNode(cnc::Vec3 p,const cnc::MachineNode& n,const cnc::MachineState& s,const cnc::MachineKinematicConfig& k){std::string parent=n.parent; if(parent=="C"){rotatePivot(p,k.pivot_c,k.c_axis,s.C);parent="A";} if(parent=="A"){rotatePivot(p,k.pivot_a,k.a_axis,s.A);parent="Z";} if(parent=="Z")p.z+=s.Z;else if(parent=="Y")p.y+=s.Y;else if(parent=="X")p.x+=s.X;return p;}  QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pitch,float zoom){constexpr double pi=3.14159265358979323846;double yr=yaw*pi/180.0,pr=pitch*pi/180.0;double x=X*std::cos(yr)-Y*std::sin(yr),y=X*std::sin(yr)+Y*std::cos(yr),sy=y*std::cos(pr)-Z*std::sin(pr);return {cx+x*1.5*zoom,cy-sy*1.5*zoom};} }
+namespace {
+cnc::Vec3 rv(cnc::Vec3 v, cnc::Vec3 axis, double deg){
+ constexpr double pi=3.14159265358979323846; double n=std::sqrt(axis.x*axis.x+axis.y*axis.y+axis.z*axis.z);
+ if(n<1e-12)return v; axis={axis.x/n,axis.y/n,axis.z/n}; double r=deg*pi/180.0,co=std::cos(r),si=std::sin(r);
+ cnc::Vec3 cr{axis.y*v.z-axis.z*v.y,axis.z*v.x-axis.x*v.z,axis.x*v.y-axis.y*v.x}; double d=axis.x*v.x+axis.y*v.y+axis.z*v.z;
+ return {v.x*co+cr.x*si+axis.x*d*(1-co),v.y*co+cr.y*si+axis.y*d*(1-co),v.z*co+cr.z*si+axis.z*d*(1-co)};
+}
+void rotatePivot(cnc::Vec3& p,const cnc::Vec3& pivot,const cnc::Vec3& axis,double deg){p.x-=pivot.x;p.y-=pivot.y;p.z-=pivot.z;p=rv(p,axis,deg);p.x+=pivot.x;p.y+=pivot.y;p.z+=pivot.z;}
+cnc::Vec3 transformNode(cnc::Vec3 p,const cnc::MachineNode& n,const cnc::MachineState& s,const cnc::MachineKinematicConfig& k){
+ if(n.name=="C"){rotatePivot(p,k.pivot_c,k.c_axis,s.C); return transformNode(p,cnc::MachineNode{"A",cnc::MachineNodeType::RotaryAxis,"","",k.a_axis,k.pivot_a,0,0,false,{},false},s,k);}
+ if(n.name=="A"){rotatePivot(p,k.pivot_a,k.a_axis,s.A);}
+ if(n.name=="Z")p.z+=s.Z; else if(n.name=="Y")p.y+=s.Y; else if(n.name=="X")p.x+=s.X;
+ return p;
+}
+QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pitch,float zoom){
+ constexpr double pi=3.14159265358979323846;double yr=yaw*pi/180.0,pr=pitch*pi/180.0;
+ double x=X*std::cos(yr)-Y*std::sin(yr),y=X*std::sin(yr)+Y*std::cos(yr),sy=y*std::cos(pr)-Z*std::sin(pr);
+ return {cx+x*1.5*zoom,cy-sy*1.5*zoom};
+}
+}
 void Viewport3D::initializeGL(){
  initializeOpenGLFunctions(); glEnable(GL_DEPTH_TEST); glEnable(GL_PROGRAM_POINT_SIZE); glClearColor(0.06f,0.07f,0.09f,1.0f);
  shader_=new QOpenGLShaderProgram(this);
