@@ -12,13 +12,21 @@ cnc::Vec3 rv(cnc::Vec3 v, cnc::Vec3 axis, double deg){
  return {v.x*co+cr.x*si+axis.x*d*(1-co),v.y*co+cr.y*si+axis.y*d*(1-co),v.z*co+cr.z*si+axis.z*d*(1-co)};
 }
 void rotatePivot(cnc::Vec3& p,const cnc::Vec3& pivot,const cnc::Vec3& axis,double deg){p.x-=pivot.x;p.y-=pivot.y;p.z-=pivot.z;p=rv(p,axis,deg);p.x+=pivot.x;p.y+=pivot.y;p.z+=pivot.z;}
-cnc::Vec3 transformNode(cnc::Vec3 p,const cnc::MachineNode& n,const cnc::MachineState& state,const cnc::MachineKinematicConfig& k){
- std::string parent=n.parent;
- if(parent=="C"){ rotatePivot(p,k.pivot_c,k.c_axis,state.C); parent="A"; }
- if(parent=="A"){ rotatePivot(p,k.pivot_a,k.a_axis,state.A); parent="Z"; }
- if(parent=="Z") p.z+=state.Z;
- else if(parent=="Y") p.y+=state.Y;
- else if(parent=="X") p.x+=state.X;
+cnc::Vec3 transformNode(cnc::Vec3 p,const cnc::MachineNode& n,const std::vector<cnc::MachineNode>& nodes,const cnc::MachineState& state,const cnc::MachineKinematicConfig& k){
+ std::string parent=n.parent; int guard=0;
+ while(!parent.empty()&&guard++<64){
+  auto it=std::find_if(nodes.begin(),nodes.end(),[&](const cnc::MachineNode& x){return x.name==parent;});
+  if(it==nodes.end()) break;
+  const auto& a=*it;
+  if(a.type==cnc::MachineNodeType::LinearAxis){
+   double q=0;if(a.name=="X")q=state.X;else if(a.name=="Y")q=state.Y;else if(a.name=="Z")q=state.Z;else q=0;
+   double nn=std::sqrt(a.axis.x*a.axis.x+a.axis.y*a.axis.y+a.axis.z*a.axis.z); if(nn>1e-12){p.x+=a.axis.x/nn*q;p.y+=a.axis.y/nn*q;p.z+=a.axis.z/nn*q;}
+  }else if(a.type==cnc::MachineNodeType::RotaryAxis){
+   double q=0;if(a.name=="A")q=state.A;else if(a.name=="C")q=state.C; else q=0;
+   rotatePivot(p,a.pivot,a.axis,q);
+  }
+  parent=a.parent;
+ }
  return p;
 }
 QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pitch,float zoom){
@@ -58,7 +66,7 @@ void Viewport3D::paintGL(){
   QMatrix4x4 mvp=proj*view;
   std::vector<float> verts; verts.reserve(30000);
   auto addv=[&](const cnc::Vec3& p,float r,float g,float b){verts.insert(verts.end(),{float(p.x),float(p.y),float(p.z),r,g,b});};
-  const auto& nodes=runtime_->machine_render_nodes(); const auto& ms=runtime_->state(); const auto& kc=runtime_->kinematics().config(); for(size_t gi=0;gi<runtime_->machine_geometry().size();++gi){const auto& g=runtime_->machine_geometry()[gi]; if(!g.loaded())continue; const cnc::MachineNode* node=gi<nodes.size()?&nodes[gi]:nullptr; for(const auto& t:g.triangles()){auto a=node?transformNode(t.a,*node,ms,kc):t.a;auto b=node?transformNode(t.b,*node,ms,kc):t.b;auto d=node?transformNode(t.c,*node,ms,kc):t.c;addv(a,0.55f,0.58f,0.62f);addv(b,0.55f,0.58f,0.62f);addv(d,0.55f,0.58f,0.62f);}}
+  const auto& nodes=runtime_->machine_render_nodes(); const auto& ms=runtime_->state(); const auto& kc=runtime_->kinematics().config(); for(size_t gi=0;gi<runtime_->machine_geometry().size();++gi){const auto& g=runtime_->machine_geometry()[gi]; if(!g.loaded())continue; const cnc::MachineNode* node=gi<nodes.size()?&nodes[gi]:nullptr; for(const auto& t:g.triangles()){auto a=node?transformNode(t.a,*node,nodes,ms,kc):t.a;auto b=node?transformNode(t.b,*node,nodes,ms,kc):t.b;auto d=node?transformNode(t.c,*node,nodes,ms,kc):t.c;addv(a,0.55f,0.58f,0.62f);addv(b,0.55f,0.58f,0.62f);addv(d,0.55f,0.58f,0.62f);}}
   const auto& sd=runtime_->stock().definition();
   int toolVertexStart=int(verts.size()/6);
   if(runtime_->tool()){
