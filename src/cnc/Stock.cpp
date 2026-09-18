@@ -86,3 +86,4 @@ bool Stock::sweep_oriented_tool(const Vec3& tip0,const Vec3& axis0,const Vec3& t
  Vec3 a0=norm3(axis0),a1=norm3(axis1); bool changed=false; Vec3 prev_tip=tip0;
  for(int i=0;i<=samples;++i){double t=double(i)/samples;Vec3 tip=lerp3(tip0,tip1,t);Vec3 axis=norm3(lerp3(a0,a1,t));changed=remove_oriented_pose(*this,tip,axis,tool)||changed;if(i>0)changed=remove_tool_segment(prev_tip,tip,cutter_radius(tool))||changed;prev_tip=tip;} return changed;
 }
+}
