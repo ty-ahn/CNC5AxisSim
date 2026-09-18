@@ -1,11 +1,12 @@
 #pragma once
 #include "Stock.h"
+#include "Bvh.h"
 #include <vector>
 #include <string>
 #include <algorithm>
 namespace cnc {
 struct Aabb { Vec3 min{}, max{}; };
-struct MachineCollisionBody { std::string name; Aabb bounds{}; };
+struct MachineCollisionBody { std::string name; Aabb bounds{}; const std::vector<Triangle>* mesh{nullptr}; const Bvh* bvh{nullptr}; };
 struct MachineCollisionSnapshot { std::string name; CollisionEvent event{}; };
 struct CollisionRecord { int block_number{-1}; CollisionEvent event{}; std::string message; };
 class CollisionManager {
@@ -21,6 +22,7 @@ public:
  void clear_machine_bodies(){machine_bodies_.clear();}
  const std::vector<MachineCollisionBody>& machine_bodies()const{return machine_bodies_;}
  CollisionEvent check_holder_machine(const Vec3& p0,const Vec3& p1,double radius) const;
+ CollisionEvent check_holder_mesh(const Vec3& p0,const Vec3& p1,double radius) const;
  std::vector<MachineCollisionSnapshot> check_all_machine_bodies(const Vec3& p0,const Vec3& p1,double radius) const;
  size_t count(CollisionType t)const{size_t n=0;for(const auto&e:events_)if(e.event.type==t)++n;return n;}
  double max_penetration(CollisionType t)const{double m=0;for(const auto&e:events_)if(e.event.type==t)m=std::max(m,e.event.penetration);return m;}
