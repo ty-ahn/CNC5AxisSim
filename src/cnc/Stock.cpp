@@ -94,14 +94,4 @@ bool Stock::sweep_oriented_tool(const Vec3& tcp0,const Vec3& axis0,const Vec3& t
  if(envelope>r) changed=remove_tool_segment(tcp0,tcp1,envelope)||changed;
  return changed;
 }
-
- // Rotating cutter envelope: connect interpolated TCP positions and conservatively
- // enlarge by the maximum lateral displacement caused by axis change.
- double dot=std::clamp(a0.x*a1.x+a0.y*a1.y+a0.z*a1.z,-1.0,1.0);
- double angle=std::acos(dot);
- double envelope=tool.radius+std::abs(tool.length)*std::sin(0.5*angle);
- if(envelope>tool.radius){
-  changed=remove_tool_segment(tcp0,tcp1,envelope)||changed;
- }
- return changed;
 }
