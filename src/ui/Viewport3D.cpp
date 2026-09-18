@@ -3,6 +3,7 @@
 #include <QFont>
 #include <cmath>
 #include <QMatrix4x4>
+#include <QPolygonF>
 void Viewport3D::initializeGL(){initializeOpenGLFunctions();glEnable(GL_DEPTH_TEST);glClearColor(0.06f,0.07f,0.09f,1.0f);}
 void Viewport3D::resizeGL(int w,int h){glViewport(0,0,w,h);}
 void Viewport3D::paintGL(){
@@ -20,6 +21,23 @@ void Viewport3D::paintGL(){
  auto& motion=runtime_->last_motion();
  if(motion.size()>1){ p.setPen(QPen(Qt::cyan,2)); QPointF prev=project(motion[0].X,motion[0].Y,motion[0].Z); for(size_t i=1;i<motion.size();++i){ QPointF cur=project(motion[i].X,motion[i].Y,motion[i].Z); p.drawLine(prev,cur); prev=cur; } }
  QRectF stock(cx-220,cy-120,440,240); p.drawRect(stock);
+ auto& sd=runtime_->stock().definition();
+ if(runtime_->stock().cell_count()>0){
+   const int nx=std::max(1,(int)std::ceil(sd.size_x/sd.resolution));
+   const int ny=std::max(1,(int)std::ceil(sd.size_y/sd.resolution));
+   const int nz=std::max(1,(int)std::ceil(sd.size_z/sd.resolution));
+   const int stride=std::max(1,std::max({nx,ny,nz})/45);
+   p.setPen(Qt::NoPen);
+   for(int iz=0;iz<nz;iz+=stride) for(int iy=0;iy<ny;iy+=stride) for(int ix=0;ix<nx;ix+=stride)
+     if(!runtime_->stock().is_removed(ix,iy,iz)){
+       double X=sd.origin.x+(ix+0.5)*sd.resolution;
+       double Y=sd.origin.y+(iy+0.5)*sd.resolution;
+       double Z=sd.origin.z+(iz+0.5)*sd.resolution;
+       QPointF q=project(X,Y,Z);
+       p.drawRect(QRectF(q-QPointF(1,1),q+QPointF(1,1)));
+     }
+   p.setPen(Qt::white);
+ }
  auto project=[&](double X,double Y,double Z){double sx=X*1.5; double sy=-Y*1.5-Z*0.55; return QPointF(cx+sx,cy+sy);};
  auto tcp=project(s.X,s.Y,s.Z);
  p.setPen(QPen(Qt::yellow,4)); p.drawLine(tcp,project(s.X,s.Y,s.Z+80));
