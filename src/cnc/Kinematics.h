@@ -24,7 +24,7 @@ public:
  static double unwrap(double previous,double target);
  static Vec3 axis_from_ac(double A,double C);
  Vec3 configured_axis_from_ac(double A,double C) const;
- static Vec3 tcp_from_machine(const MachineState&,double tool_length);
+ Vec3 tcp_from_machine(const MachineState&,double tool_length) const;
  bool inverse_kinematics(const ToolPose&,const MachineState&,double tool_length,IKResult&,std::string&);
  bool orientation_move(const ToolPose&,const MachineState&,double,std::vector<MachineState>&,std::string&,int samples=20);
  bool apply_swivel(double,double,double,double,double,ToolPose&,std::string&) const;
