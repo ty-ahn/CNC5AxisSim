@@ -5,6 +5,7 @@
 #include <cmath>
 #include <regex>
 #include <cctype>
+namespace cnc {
 static Vec3 rt_rotate(Vec3 p,Vec3 pivot,Vec3 axis,double deg){double n=std::sqrt(axis.x*axis.x+axis.y*axis.y+axis.z*axis.z);if(n<1e-12)return p;axis={axis.x/n,axis.y/n,axis.z/n};p={p.x-pivot.x,p.y-pivot.y,p.z-pivot.z};constexpr double pi=3.14159265358979323846;double r=deg*pi/180.0,co=std::cos(r),si=std::sin(r);Vec3 cr{axis.y*p.z-axis.z*p.y,axis.z*p.x-axis.x*p.z,axis.x*p.y-axis.y*p.x};double d=axis.x*p.x+axis.y*p.y+axis.z*p.z;return {p.x*co+cr.x*si+axis.x*d*(1-co)+pivot.x,p.y*co+cr.y*si+axis.y*d*(1-co)+pivot.y,p.z*co+cr.z*si+axis.z*d*(1-co)+pivot.z};}
 static Vec3 rt_transform_node(Vec3 p,const std::string&name,const std::vector<MachineNode>&nodes,const MachineState&s,bool inverse){
  auto it=std::find_if(nodes.begin(),nodes.end(),[&](const MachineNode&n){return n.name==name;});if(it==nodes.end())return p;
