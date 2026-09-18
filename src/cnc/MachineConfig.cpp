@@ -19,6 +19,7 @@ bool MachineConfig::load_json(const std::string& path,std::string& e){
  std::regex body("\"body_([A-Za-z0-9_]+)_(min_x|max_x|min_y|max_y|min_z|max_z)\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9]+)?)");
  struct B{MachineNode n;bool seen[6]{};}; std::vector<B> bodies;
  for(std::sregex_iterator it(s.begin(),s.end(),body),endit;it!=endit;++it){std::string name=(*it)[1],key=(*it)[2];double v=std::stod((*it)[3]);auto bi=std::find_if(bodies.begin(),bodies.end(),[&](const B&b){return b.n.name==name;});if(bi==bodies.end()){B b{};b.n.name=name;b.n.type=MachineNodeType::Fixture;bi=bodies.insert(bodies.end(),b)-1;}int k=key=="min_x"?0:key=="max_x"?1:key=="min_y"?2:key=="max_y"?3:key=="min_z"?4:5;bi->n.collision_enabled=true;bi->n.collision_bounds.min.x=k==0?v:bi->n.collision_bounds.min.x;bi->n.collision_bounds.max.x=k==1?v:bi->n.collision_bounds.max.x;bi->n.collision_bounds.min.y=k==2?v:bi->n.collision_bounds.min.y;bi->n.collision_bounds.max.y=k==3?v:bi->n.collision_bounds.max.y;bi->n.collision_bounds.min.z=k==4?v:bi->n.collision_bounds.min.z;bi->n.collision_bounds.max.z=k==5?v:bi->n.collision_bounds.max.z;}
+ for(auto& n:nodes_){std::regex mr("\"body_"+n.name+"_mesh\"\\s*:\\s*\"([^\"]+)\"");std::smatch mm;if(std::regex_search(s,mm,mr))n.mesh=mm[1];}
  for(const auto& b:bodies)nodes_.push_back(b.n); return true;
 }
 bool MachineConfig::save_json(const std::string& path,std::string&e)const{
