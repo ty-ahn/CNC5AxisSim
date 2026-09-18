@@ -19,9 +19,12 @@ bool Stock::remove_tool_segment(const Vec3& p0,const Vec3& p1,double radius){
  } return changed;
 }
 bool Stock::sweep_tool_segment(const Vec3& p0,const Vec3& p1,const ToolGeometry& tool){
+ if(cells_.empty() || tool.radius<0 || tool.length<0) return false;
+ // Conservative swept-volume approximation. The voxel kernel is sampled at
+ // the tool centreline; effective radius includes the tool nose geometry.
  double r=tool.radius;
  if(tool.shape==ToolShape::BullNose && tool.corner_radius>0) r=std::max(r,tool.corner_radius);
- if(tool.shape==ToolShape::Ball) return remove_tool_segment(p0,p1,r);
+ if(tool.shape==ToolShape::Ball) r=tool.radius;
  return remove_tool_segment(p0,p1,r);
 }
 CollisionEvent Stock::check_holder_stock(const Vec3& p0,const Vec3& p1,double radius) const{
