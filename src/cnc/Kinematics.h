@@ -6,7 +6,12 @@ struct Vec3 { double x{},y{},z{}; };
 struct MachineState { double X{},Y{},Z{},A{},C{}; };
 struct ToolPose { Vec3 tcp{}; Vec3 tool_axis{0,0,-1}; double tool_roll{}; };
 struct AxisLimit { double minimum{}, maximum{}; bool wrap{}; };
-struct MachineKinematicConfig { AxisLimit X{-500,500,false},Y{-500,500,false},Z{-500,200,false},A{-120,120,false},C{-360,360,true}; double a_to_c{}, c_to_tool{}; };
+struct MachineKinematicConfig {
+ AxisLimit X{-500,500,false},Y{-500,500,false},Z{-500,200,false},A{-120,120,false},C{-360,360,true};
+ Vec3 a_axis{1,0,0}, c_axis{0,0,1};
+ Vec3 pivot_a{0,0,0}, pivot_c{0,0,0};
+ double a_to_c{}, c_to_tool{};
+};
 struct IKResult { MachineState state{}; double position_error{},orientation_error{},cost{}; bool valid{}; };
 class Kinematics {
  MachineKinematicConfig config_{}; bool swivel_active_{false}; ToolPose swivel_pose_{};
