@@ -17,21 +17,20 @@ VerifyResult VerifyEngine::run(const std::vector<Block>& blocks,const std::unord
  r.final_state=runtime.state(); r.remaining_volume=runtime.stock().remaining_volume(); r.passed=(ex.state()==ExecutionState::Completed&&r.errors==0&&r.collisions==0); return r;
 }
 bool VerifyEngine::save_json(const VerifyResult&r,const std::string&path,std::string&e){
- std::ofstream f(path); if(!f){e="cannot write verify report";return false;} f<<std::setprecision(15);
- f<<"{
-  \"passed\": "<<(r.passed?"true":"false")<<",
-  \"executed\": "<<r.executed<<",
-  \"errors\": "<<r.errors<<",
-  \"collisions\": "<<r.collisions<<",
-  \"steps\": "<<r.steps<<",
-  \"first_error\": \"";
- for(char ch:r.first_error){if(ch=='\\'||ch=='\"')f<<'\\'; if(ch=='
-')f<<"\
-"; else f<<ch;}
- f<<"\",
-  \"final_state\": {\"X\": "<<r.final_state.X<<", \"Y\": "<<r.final_state.Y<<", \"Z\": "<<r.final_state.Z<<", \"A\": "<<r.final_state.A<<", \"C\": "<<r.final_state.C<<"},
-  \"remaining_volume\": "<<r.remaining_volume<<"
-}
-"; return true;
-}
+ std::ofstream f(path);
+ if(!f){e="cannot write verify report";return false;}
+ f<<std::setprecision(15);
+ f<<"{\n"
+  <<"  \"passed\": "<<(r.passed?"true":"false")<<",\n"
+  <<"  \"executed\": "<<r.executed<<",\n"
+  <<"  \"errors\": "<<r.errors<<",\n"
+  <<"  \"collisions\": "<<r.collisions<<",\n"
+  <<"  \"steps\": "<<r.steps<<",\n"
+  <<"  \"first_error\": \"";
+ for(char ch:r.first_error){if(ch=='\\'||ch=='\"')f<<'\\'; if(ch=='\n')f<<"\\n"; else if(ch=='\r')f<<"\\r"; else if(ch=='\t')f<<"\\t"; else f<<ch;}
+ f<<"\",\n"
+  <<"  \"final_state\": {\"X\": "<<r.final_state.X<<", \"Y\": "<<r.final_state.Y<<", \"Z\": "<<r.final_state.Z<<", \"A\": "<<r.final_state.A<<", \"C\": "<<r.final_state.C<<"},\n"
+  <<"  \"remaining_volume\": "<<r.remaining_volume<<"\n"
+  <<"}\n";
+ return true;
 }
