@@ -1,14 +1,14 @@
 #include "Verify.h"
 #include "ProgramExecutor.h"
 #include <fstream>
-#include <iomanip>
+#include <iomanip>\n#include <algorithm>
 namespace cnc {
 VerifyResult VerifyEngine::run(const std::vector<Block>& blocks, Runtime runtime){ static const std::unordered_map<int,std::vector<Block>> empty; return run(blocks,empty,runtime); }
 VerifyResult VerifyEngine::run(const std::vector<Block>& blocks,const std::unordered_map<int,std::vector<Block>>& subprograms,Runtime runtime){
  VerifyResult r{}; ProgramExecutor ex(runtime); ex.load(blocks); for(const auto& [n,b]:subprograms) ex.add_subprogram(n,b);
  if(blocks.empty()){r.passed=true;return r;} if(!ex.start()){r.errors=1;r.first_error=ex.error();return r;}
  while(ex.state()==ExecutionState::Running) if(!ex.step()) break;
- r.errors=(ex.state()==ExecutionState::Error)?1:0; if(r.errors)r.first_error=ex.error(); r.collisions=runtime.collisions().events().size(); r.steps=ex.steps(); r.executed=ex.current_block(); if(ex.state()==ExecutionState::Completed)r.executed=blocks.size();
+ r.errors=(ex.state()==ExecutionState::Error)?1:0; if(r.errors)r.first_error=ex.error(); r.collisions=runtime.collisions().events().size();\n r.tool_stock_collisions=runtime.collisions().count(CollisionType::ToolStock);\n r.holder_stock_collisions=runtime.collisions().count(CollisionType::HolderStock);\n r.holder_machine_collisions=runtime.collisions().count(CollisionType::HolderMachine);\n r.max_penetration=std::max({runtime.collisions().max_penetration(CollisionType::ToolStock),runtime.collisions().max_penetration(CollisionType::HolderStock),runtime.collisions().max_penetration(CollisionType::HolderMachine)}); r.steps=ex.steps(); r.executed=ex.current_block(); if(ex.state()==ExecutionState::Completed)r.executed=blocks.size();
  r.final_state=runtime.state(); r.remaining_volume=runtime.stock().remaining_volume(); r.passed=(ex.state()==ExecutionState::Completed&&r.errors==0&&r.collisions==0); return r;
 }
 bool VerifyEngine::save_json(const VerifyResult&r,const std::string&path,std::string&e){
