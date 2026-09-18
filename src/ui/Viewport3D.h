@@ -7,7 +7,7 @@
 #include "cnc/Runtime.h"
 class Viewport3D final : public QOpenGLWidget, protected QOpenGLFunctions_4_5_Core {
  cnc::Runtime* runtime_{};
- QPoint last_mouse_{}; float yaw_=35.0f,pitch_=25.0f,zoom_=1.0f;
+ QPoint last_mouse_{}; float yaw_=35.0f,pitch_=25.0f,zoom_=1.0f; QOpenGLShaderProgram* shader_{}; GLuint vbo_{};
  void drawMachine(QPainter& p,int cx,int cy); 
 public:
  explicit Viewport3D(cnc::Runtime* runtime,QWidget* parent=nullptr):QOpenGLWidget(parent),runtime_(runtime){}
