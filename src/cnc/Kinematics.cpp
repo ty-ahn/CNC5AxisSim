@@ -14,5 +14,6 @@ bool Kinematics::inverse_kinematics(const ToolPose&p,const MachineState&seed,dou
  auto fk=tcp_from_machine(q,L);double pe=std::hypot(std::hypot(fk.x-p.tcp.x,fk.y-p.tcp.y),fk.z-p.tcp.z);
  auto qa=axis_from_ac(q.A,q.C);double oe=std::sqrt((qa.x-d.x)*(qa.x-d.x)+(qa.y-d.y)*(qa.y-d.y)+(qa.z-d.z)*(qa.z-d.z));
  o={q,pe,oe,std::abs(q.A-seed.A)+std::abs(q.C-seed.C),pe<1e-7&&oe<1e-7};if(!o.valid){e="IK solution exceeds tolerance";return false;}return true;
+bool Kinematics::orientation_move(const ToolPose&p,const MachineState&seed,double L,std::vector<MachineState>&out,std::string&e,int samples){ out.clear(); if(samples<1)samples=1; IKResult ik; if(!inverse_kinematics(p,seed,L,ik,e)) return false; double a0=seed.A,a1=ik.state.A,c0=seed.C,c1=unwrap(c0,ik.state.C); for(int i=0;i<=samples;++i){double t=double(i)/samples; MachineState q=seed; q.A=a0+(a1-a0)*t; q.C=c0+(c1-c0)*t; if(!validate(q,e))return false; out.push_back(q);} return true; }
 }
 }
