@@ -38,7 +38,7 @@ void Viewport3D::paintGL(){
      }
    p.setPen(Qt::white);
  }
- auto project=[&](double X,double Y,double Z){double sx=X*1.5; double sy=-Y*1.5-Z*0.55; return QPointF(cx+sx,cy+sy);};
+ auto project=[&](double X,double Y,double Z){ double yr=yaw_*3.1415926535/180.0, pr=pitch_*3.1415926535/180.0; double x=X*std::cos(yr)-Y*std::sin(yr); double y=X*std::sin(yr)+Y*std::cos(yr); double sy=y*std::cos(pr)-Z*std::sin(pr); return QPointF(cx+x*1.5*zoom_,cy-sy*1.5*zoom_); };
  auto tcp=project(s.X,s.Y,s.Z);
  p.setPen(QPen(Qt::yellow,4)); p.drawLine(tcp,project(s.X,s.Y,s.Z+80));
  p.drawEllipse(tcp-QPointF(5,5),QPointF(5,5)); p.drawText(tcp+QPointF(10,-10),"TOOL/TCP");
@@ -46,3 +46,7 @@ void Viewport3D::paintGL(){
  p.setPen(Qt::white);p.drawText(cx+12,cy-8,"TCP");
  p.end();
 }
+
+void Viewport3D::mousePressEvent(QMouseEvent* e){last_mouse_=e->pos();}
+void Viewport3D::mouseMoveEvent(QMouseEvent* e){if(e->buttons()&Qt::LeftButton){auto d=e->pos()-last_mouse_;yaw_+=d.x()*0.5f;pitch_=std::clamp(pitch_+d.y()*0.5f,-89.0f,89.0f);last_mouse_=e->pos();update();}}
+void Viewport3D::wheelEvent(QWheelEvent* e){zoom_=std::clamp(zoom_+e->angleDelta().y()/1200.0f,0.2f,5.0f);update();}
