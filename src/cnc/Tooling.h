@@ -1,5 +1,7 @@
 #pragma once
-#include <unordered_map>\n#include <string>
+#include <unordered_map>
+#include <string>
+#include <cstddef>
 namespace cnc {
 struct ToolDefinition {
  int number{};
