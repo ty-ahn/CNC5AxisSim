@@ -1,0 +1,45 @@
+name: CNC5AxisSim Windows Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD "buildReleaseCNC5AxisSim.exe"
+          if (!(Test-Path $exe)) { throw "CNC5AxisSim.exe not found" }
+          & $exe
+          if ($LASTEXITCODE -ne 0) { throw "Smoke test failed" }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item "buildReleaseCNC5AxisSim.exe" "distCNC5AxisSim.exe"
+          Compress-Archive -Path distCNC5AxisSim.exe -DestinationPath CNC5AxisSim-Windows-x64.zip -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CNC5AxisSim-Windows-x64
+          path: CNC5AxisSim-Windows-x64.zip
