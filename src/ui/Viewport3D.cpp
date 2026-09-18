@@ -4,9 +4,30 @@
 #include <cmath>
 #include <algorithm>
 namespace { QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pitch,float zoom){constexpr double pi=3.14159265358979323846;double yr=yaw*pi/180.0,pr=pitch*pi/180.0;double x=X*std::cos(yr)-Y*std::sin(yr),y=X*std::sin(yr)+Y*std::cos(yr),sy=y*std::cos(pr)-Z*std::sin(pr);return {cx+x*1.5*zoom,cy-sy*1.5*zoom};} }
-void Viewport3D::initializeGL(){initializeOpenGLFunctions();glEnable(GL_DEPTH_TEST);glClearColor(0.06f,0.07f,0.09f,1.0f);}
+void Viewport3D::initializeGL(){
+ initializeOpenGLFunctions(); glEnable(GL_DEPTH_TEST); glClearColor(0.06f,0.07f,0.09f,1.0f);
+ shader_=new QOpenGLShaderProgram(this);
+ shader_->addShaderFromSourceCode(QOpenGLShader::Vertex,"#version 330 core\\nin vec3 position; uniform mat4 mvp; void main(){gl_Position=mvp*vec4(position,1.0);}");
+ shader_->addShaderFromSourceCode(QOpenGLShader::Fragment,"#version 330 core\\nout vec4 frag; void main(){frag=vec4(0.55,0.58,0.62,1.0);}");
+ shader_->link(); vao_.create(); vbo_.create();
+}
 void Viewport3D::resizeGL(int w,int h){glViewport(0,0,w,h);}
-void Viewport3D::paintGL(){glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);QPainter p(this);p.setFont(QFont("Consolas",11));p.setPen(Qt::white);p.drawText(18,28,"CNC5AxisSim | 3D MACHINE VIEW");if(!runtime_){p.end();return;}auto s=runtime_->state();int cx=width()/2,cy=height()/2;auto project=[&](double X,double Y,double Z){return projectPoint(X,Y,Z,cx,cy,yaw_,pitch_,zoom_);};p.drawText(18,52,QString("XYZAC X:%1 Y:%2 Z:%3 A:%4 C:%5").arg(s.X,0,'f',2).arg(s.Y,0,'f',2).arg(s.Z,0,'f',2).arg(s.A,0,'f',2).arg(s.C,0,'f',2));p.drawText(18,72,QString("STOCK CELLS: %1 REMAINING: %2").arg((qulonglong)runtime_->stock().cell_count()).arg(runtime_->stock().remaining_volume(),0,'f',1));drawMachine(p,cx,cy); 
+void Viewport3D::paintGL(){
+ glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+ if(shader_ && shader_->isLinked() && runtime_){
+  std::vector<float> verts;
+  for(const auto& g:runtime_->machine_geometry()) if(g.loaded()) for(const auto& t:g.triangles()){
+   verts.insert(verts.end(),{float(t.a.x),float(t.a.y),float(t.a.z),float(t.b.x),float(t.b.y),float(t.b.z),float(t.c.x),float(t.c.y),float(t.c.z)});
+  }
+  if(!verts.empty()){
+   QMatrix4x4 proj,view; proj.perspective(45.0f,float(width())/std::max(1,height()),0.1f,5000.0f);
+   view.translate(0,0,-700.0f/zoom_); view.rotate(pitch_,1,0,0); view.rotate(yaw_,0,0,1);
+   QMatrix4x4 mvp=proj*view; shader_->bind(); shader_->setUniformValue("mvp",mvp);
+   vao_.bind(); vbo_.bind(); vbo_.allocate(verts.data(),int(verts.size()*sizeof(float)));
+   shader_->enableAttributeArray("position"); shader_->setAttributeBuffer("position",GL_FLOAT,0,3,3*sizeof(float));
+   glDrawArrays(GL_TRIANGLES,0,int(verts.size()/3)); vbo_.release(); vao_.release(); shader_->release();
+  }
+ }QPainter p(this);p.setFont(QFont("Consolas",11));p.setPen(Qt::white);p.drawText(18,28,"CNC5AxisSim | 3D MACHINE VIEW");if(!runtime_){p.end();return;}auto s=runtime_->state();int cx=width()/2,cy=height()/2;auto project=[&](double X,double Y,double Z){return projectPoint(X,Y,Z,cx,cy,yaw_,pitch_,zoom_);};p.drawText(18,52,QString("XYZAC X:%1 Y:%2 Z:%3 A:%4 C:%5").arg(s.X,0,'f',2).arg(s.Y,0,'f',2).arg(s.Z,0,'f',2).arg(s.A,0,'f',2).arg(s.C,0,'f',2));p.drawText(18,72,QString("STOCK CELLS: %1 REMAINING: %2").arg((qulonglong)runtime_->stock().cell_count()).arg(runtime_->stock().remaining_volume(),0,'f',1));drawMachine(p,cx,cy); 
 for(const auto& g:runtime_->machine_geometry()) if(g.loaded()){
  const auto& b=g.bounds(); const double sx=std::max(1.0,b.max.x-b.min.x), sy=std::max(1.0,b.max.y-b.min.y), sz=std::max(1.0,b.max.z-b.min.z);
  const double scale=300.0/std::max({sx,sy,sz});
