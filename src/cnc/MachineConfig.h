@@ -1,5 +1,6 @@
 #pragma once
 #include "Kinematics.h"
+#include "Collision.h"
 #include <string>
 #include <vector>
 namespace cnc {
