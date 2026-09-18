@@ -13,6 +13,7 @@ void Viewport3D::paintGL(){
  p.drawText(18,28,"CNC5AxisSim  |  3D MACHINE VIEW");
  if(!runtime_){p.end();return;}
  auto s=runtime_->state();
+ p.drawText(18,72,QString("CUT VOXELS: %1 / %2").arg((qulonglong)cut).arg((qulonglong)runtime_->stock().cell_count()));
  p.drawText(18,52,QString("XYZAC  X:%1  Y:%2  Z:%3  A:%4  C:%5")
    .arg(s.X,0,'f',2).arg(s.Y,0,'f',2).arg(s.Z,0,'f',2).arg(s.A,0,'f',2).arg(s.C,0,'f',2));
  const int cx=width()/2, cy=height()/2;
