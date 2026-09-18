@@ -26,6 +26,20 @@ QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pi
  double x=X*std::cos(yr)-Y*std::sin(yr),y=X*std::sin(yr)+Y*std::cos(yr),sy=y*std::cos(pr)-Z*std::sin(pr);
  return {cx+x*1.5*zoom,cy-sy*1.5*zoom};
 }
+cnc::Vec3 cross3(const cnc::Vec3&a,const cnc::Vec3&b){return {a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x};}
+double dot3(const cnc::Vec3&a,const cnc::Vec3&b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+cnc::Vec3 norm3(cnc::Vec3 v){double n=std::sqrt(dot3(v,v));return n<1e-12?cnc::Vec3{0,0,-1}:cnc::Vec3{v.x/n,v.y/n,v.z/n};}
+cnc::Vec3 add3(const cnc::Vec3&a,const cnc::Vec3&b,double s=1.0){return {a.x+b.x*s,a.y+b.y*s,a.z+b.z*s};}
+void addToolSurface(std::vector<float>& verts,const cnc::Vec3& tip,const cnc::Vec3& axis,double length,double radius,double noseRadius,double cr,double cg,double cb){
+ if(length<=0||radius<=0)return; constexpr double pi=3.14159265358979323846; const int seg=32, rings=12; cnc::Vec3 w=std::fabs(axis.z)<0.9?cnc::Vec3{0,0,1}:cnc::Vec3{1,0,0}; cnc::Vec3 u=norm3(cross3(axis,w)),v=cross3(axis,u);
+ auto add=[&](const cnc::Vec3&p){verts.insert(verts.end(),{float(p.x),float(p.y),float(p.z),cr,cg,cb});};
+ auto point=[&](double z,double rr,double a){return add3(add3(add3(tip,axis,z),u,rr*std::cos(a)),v,rr*std::sin(a));};
+ double nr=std::clamp(noseRadius,0.0,radius); int noseRings=nr>1e-9?std::max(2,int(rings*std::min(1.0,nr/length))):0;
+ cnc::Vec3 prevTop{}; bool have=false;
+ if(noseRings>0){for(int j=0;j<=noseRings;++j){double q=double(j)/noseRings;double z=nr*q;double rr=std::sqrt(std::max(0.0,nr*nr-(nr-z)*(nr-z))); if(j==0){for(int i=0;i<seg;++i){double a=2*pi*i/seg;point(z,rr,a);point(z,rr,2*pi*(i+1)/seg);point(z,rr,2*pi*(i+1)/seg);}} if(j>0){double z0=nr*double(j-1)/noseRings;double r0=std::sqrt(std::max(0.0,nr*nr-(nr-z0)*(nr-z0)));for(int i=0;i<seg;++i){double a0=2*pi*i/seg,a1=2*pi*(i+1)/seg;auto p00=add3(add3(add3(tip,axis,z0),u,r0*std::cos(a0)),v,r0*std::sin(a0));auto p01=add3(add3(add3(tip,axis,z0),u,r0*std::cos(a1)),v,r0*std::sin(a1));auto p10=add3(add3(add3(tip,axis,z),u,rr*std::cos(a0)),v,rr*std::sin(a0));auto p11=add3(add3(add3(tip,axis,z),u,rr*std::cos(a1)),v,rr*std::sin(a1));add(p00);add(p10);add(p11);add(p00);add(p11);add(p01);}}} double z0=nr; double r0=nr; for(int j=1;j<=rings;++j){double z=z0+(length-z0)*double(j)/rings;for(int i=0;i<seg;++i){double a0=2*pi*i/seg,a1=2*pi*(i+1)/seg;auto p00=add3(add3(add3(tip,axis,z0+(z-z0)*double(j-1)/rings),u,r0),v,0);auto p01=add3(add3(add3(tip,axis,z0+(z-z0)*double(j-1)/rings),u,r0*std::cos(a1)),v,r0*std::sin(a1));auto p10=add3(add3(add3(tip,axis,z),u,radius*std::cos(a0)),v,radius*std::sin(a0));auto p11=add3(add3(add3(tip,axis,z),u,radius*std::cos(a1)),v,radius*std::sin(a1));if(j==1){p00=add3(add3(tip,axis,z0),u,r0*std::cos(a0));} add(p00);add(p10);add(p11);add(p00);add(p11);add(p01);}}}
+ else {for(int j=0;j<rings;++j){double z0=length*double(j)/rings,z1=length*double(j+1)/rings;for(int i=0;i<seg;++i){double a0=2*pi*i/seg,a1=2*pi*(i+1)/seg;auto p00=point(z0,radius,a0);(void)p00;auto A=add3(add3(add3(tip,axis,z0),u,radius*std::cos(a0)),v,radius*std::sin(a0));auto B=add3(add3(add3(tip,axis,z0),u,radius*std::cos(a1)),v,radius*std::sin(a1));auto C=add3(add3(add3(tip,axis,z1),u,radius*std::cos(a0)),v,radius*std::sin(a0));auto D=add3(add3(add3(tip,axis,z1),u,radius*std::cos(a1)),v,radius*std::sin(a1));add(A);add(C);add(D);add(A);add(D);add(B);}}}
+}
+void addCylinder(std::vector<float>& verts,const cnc::Vec3& p0,const cnc::Vec3& axis,double length,double radius,float cr,float cg,float cb){if(length<=0||radius<=0)return;constexpr double pi=3.14159265358979323846;const int seg=32;cnc::Vec3 a=norm3(axis),w=std::fabs(a.z)<0.9?cnc::Vec3{0,0,1}:cnc::Vec3{1,0,0},u=norm3(cross3(a,w)),v=cross3(a,u);auto add=[&](const cnc::Vec3&p){verts.insert(verts.end(),{float(p.x),float(p.y),float(p.z),cr,cg,cb});};for(int i=0;i<seg;++i){double a0=2*pi*i/seg,a1=2*pi*(i+1)/seg;auto A=add3(add3(p0,u,radius*std::cos(a0)),v,radius*std::sin(a0));auto B=add3(add3(p0,u,radius*std::cos(a1)),v,radius*std::sin(a1));auto C=add3(add3(p0,a,length),u,radius*std::cos(a0));C=add3(C,v,radius*std::sin(a0));auto D=add3(add3(p0,a,length),u,radius*std::cos(a1));D=add3(D,v,radius*std::sin(a1));add(A);add(C);add(D);add(A);add(D);add(B);}}
 }
 void Viewport3D::initializeGL(){
  initializeOpenGLFunctions(); glEnable(GL_DEPTH_TEST); glEnable(GL_PROGRAM_POINT_SIZE); glClearColor(0.06f,0.07f,0.09f,1.0f);
@@ -46,6 +60,17 @@ void Viewport3D::paintGL(){
   auto addv=[&](const cnc::Vec3& p,float r,float g,float b){verts.insert(verts.end(),{float(p.x),float(p.y),float(p.z),r,g,b});};
   const auto& nodes=runtime_->machine_render_nodes(); const auto& ms=runtime_->state(); const auto& kc=runtime_->kinematics().config(); for(size_t gi=0;gi<runtime_->machine_geometry().size();++gi){const auto& g=runtime_->machine_geometry()[gi]; if(!g.loaded())continue; const cnc::MachineNode* node=gi<nodes.size()?&nodes[gi]:nullptr; for(const auto& t:g.triangles()){auto a=node?transformNode(t.a,*node,ms,kc):t.a;auto b=node?transformNode(t.b,*node,ms,kc):t.b;auto d=node?transformNode(t.c,*node,ms,kc):t.c;addv(a,0.55f,0.58f,0.62f);addv(b,0.55f,0.58f,0.62f);addv(d,0.55f,0.58f,0.62f);}}
   const auto& sd=runtime_->stock().definition();
+  int toolVertexStart=int(verts.size()/6);
+  if(runtime_->tool()){
+   cnc::ToolDefinition td{};
+   if(runtime_->tool_table().get(runtime_->tool(),td)){
+    const double L=std::max(0.0,td.length),R=std::max(0.0,td.diameter*0.5);
+    auto axis=runtime_->kinematics().configured_axis_from_ac(ms.A,ms.C); auto tip=runtime_->kinematics().tcp_from_machine(ms,L);
+    addToolSurface(verts,tip,axis,L,R,std::min(td.corner_radius,R),1.0f,0.78f,0.12f);
+    auto top=add3(tip,axis,L); addCylinder(verts,top,axis,td.holder_length,std::max(0.0,td.holder_diameter*0.5),0.62f,0.64f,0.68f);
+   }
+  }
+
   if(runtime_->stock().cell_count()>0){
    const int nx=std::max(1,int(std::ceil(sd.size_x/std::max(0.001,sd.resolution))));
    const int ny=std::max(1,int(std::ceil(sd.size_y/std::max(0.001,sd.resolution))));
@@ -65,8 +90,11 @@ void Viewport3D::paintGL(){
    int machineVertices=0;
    for(const auto& g:runtime_->machine_geometry()) if(g.loaded()) machineVertices+=int(g.triangles().size()*3);
    if(machineVertices>0) glDrawArrays(GL_TRIANGLES,0,machineVertices);
-   const int stockStart=machineVertices;
-   if(stockStart<int(verts.size()/6)) glDrawArrays(GL_POINTS,stockStart,int(verts.size()/6)-stockStart);
+   const int toolVertices=int(verts.size()/6)-machineVertices;
+   const int stockStart=machineVertices+toolVertexStart-machineVertices;
+   if(toolVertexStart>machineVertices) glDrawArrays(GL_TRIANGLES,machineVertices,toolVertexStart-machineVertices);
+   const int stockPointStart=toolVertexStart;
+   if(stockPointStart<int(verts.size()/6)) glDrawArrays(GL_POINTS,stockPointStart,int(verts.size()/6)-stockPointStart);
    vbo_.release(); vao_.release(); shader_->release();
   }
  }
