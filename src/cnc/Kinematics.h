@@ -9,7 +9,7 @@ struct AxisLimit { double minimum{}, maximum{}; bool wrap{}; };
 struct MachineKinematicConfig { AxisLimit X{-500,500,false},Y{-500,500,false},Z{-500,200,false},A{-120,120,false},C{-360,360,true}; double a_to_c{}, c_to_tool{}; };
 struct IKResult { MachineState state{}; double position_error{},orientation_error{},cost{}; bool valid{}; };
 class Kinematics {
- MachineKinematicConfig config_{};
+ MachineKinematicConfig config_{}; bool swivel_active_{false}; ToolPose swivel_pose_{};
 public:
  explicit Kinematics(MachineKinematicConfig c={}):config_(c){}
  const MachineKinematicConfig& config()const{return config_;}
