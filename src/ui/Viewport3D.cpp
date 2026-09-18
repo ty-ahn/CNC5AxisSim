@@ -7,8 +7,8 @@ namespace { QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float 
 void Viewport3D::initializeGL(){
  initializeOpenGLFunctions(); glEnable(GL_DEPTH_TEST); glClearColor(0.06f,0.07f,0.09f,1.0f);
  shader_=new QOpenGLShaderProgram(this);
- shader_->addShaderFromSourceCode(QOpenGLShader::Vertex,"#version 330 core\\nin vec3 position; uniform mat4 mvp; void main(){gl_Position=mvp*vec4(position,1.0);}");
- shader_->addShaderFromSourceCode(QOpenGLShader::Fragment,"#version 330 core\\nout vec4 frag; void main(){frag=vec4(0.55,0.58,0.62,1.0);}");
+ shader_->addShaderFromSourceCode(QOpenGLShader::Vertex,"#version 330 core\nin vec3 position; uniform mat4 mvp; void main(){gl_Position=mvp*vec4(position,1.0);}");
+ shader_->addShaderFromSourceCode(QOpenGLShader::Fragment,"#version 330 core\nout vec4 frag; void main(){frag=vec4(0.55,0.58,0.62,1.0);}");
  shader_->link(); vao_.create(); vbo_.create();
 }
 void Viewport3D::resizeGL(int w,int h){glViewport(0,0,w,h);}
