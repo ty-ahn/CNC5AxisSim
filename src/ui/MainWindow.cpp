@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QTimer>
 MainWindow::MainWindow(QWidget* p):QMainWindow(p),operator_(runtime_){
@@ -32,8 +33,8 @@ MainWindow::MainWindow(QWidget* p):QMainWindow(p),operator_(runtime_){
  add("RESUME",[this]{operator_.resume();refresh();});
  add("STOP",[this,timer]{timer->stop();operator_.stop();refresh();});
  add("RESET",[this,timer]{timer->stop();operator_.reset();refresh();});
- add("VERIFY",[this]{cnc::ProgramLoader l;std::string e;if(!l.load_text(program_->toPlainText().toStdString(),e)){QMessageBox::critical(this,"VERIFY",QString::fromStdString(e));return;} auto r=cnc::VerifyEngine::run(l.blocks()); QString msg=QString("VERIFY %1 | blocks %2/%3 | errors %4 | collisions %5").arg(r.passed?"PASS":"FAIL").arg((qulonglong)r.executed).arg((qulonglong)l.blocks().size()).arg((qulonglong)r.errors).arg((qulonglong)r.collisions); status_->setText(msg); if(!r.passed) QMessageBox::warning(this,"VERIFY",msg+"\n"+QString::fromStdString(r.first_error)); else QMessageBox::information(this,"VERIFY",msg);});
- auto* load=new QPushButton("LOAD MPF");connect(load,&QPushButton::clicked,this,[this]{QString fn=QFileDialog::getOpenFileName(this,"Open MPF",{}, "MPF (*.MPF *.mpf);;All Files (*)");if(fn.isEmpty())return;cnc::ProgramLoader l;std::string e;if(!l.load_file(fn.toStdString(),e)){QMessageBox::critical(this,"MPF",QString::fromStdString(e));return;}operator_.load(l.blocks());std::ifstream in(fn.toStdString(),std::ios::binary);std::string text((std::istreambuf_iterator<char>(in)),std::istreambuf_iterator<char>());program_->setPlainText(QString::fromStdString(text)); refresh();});right->addWidget(load);
+ add("VERIFY",[this]{cnc::ProgramLoader l;std::string e;if(!l.load_text(program_->toPlainText().toStdString(),e)){QMessageBox::critical(this,"VERIFY",QString::fromStdString(e));return;} auto r=cnc::VerifyEngine::run(l.blocks(),catalog_.subprograms()); QString msg=QString("VERIFY %1 | blocks %2/%3 | errors %4 | collisions %5").arg(r.passed?"PASS":"FAIL").arg((qulonglong)r.executed).arg((qulonglong)l.blocks().size()).arg((qulonglong)r.errors).arg((qulonglong)r.collisions); status_->setText(msg); if(!r.passed) QMessageBox::warning(this,"VERIFY",msg+"\n"+QString::fromStdString(r.first_error)); else QMessageBox::information(this,"VERIFY",msg);});
+ auto* load=new QPushButton("LOAD MPF");connect(load,&QPushButton::clicked,this,[this]{QString fn=QFileDialog::getOpenFileName(this,"Open MPF",{}, "MPF (*.MPF *.mpf);;All Files (*)");if(fn.isEmpty())return;cnc::ProgramLoader l;std::string e;if(!l.load_file(fn.toStdString(),e)){QMessageBox::critical(this,"MPF",QString::fromStdString(e));return;}operator_.load(l.blocks()); catalog_.load_directory(QFileInfo(fn).absolutePath().toStdString(),e); for(const auto& [n,b]:catalog_.subprograms()) operator_.add_subprogram(n,b); std::ifstream in(fn.toStdString(),std::ios::binary);std::string text((std::istreambuf_iterator<char>(in)),std::istreambuf_iterator<char>());program_->setPlainText(QString::fromStdString(text)); refresh();});right->addWidget(load);
  alarms_=new QListWidget;right->addWidget(alarms_,1);main->addLayout(right,1);setCentralWidget(root);loadDemo();
 }
 void MainWindow::loadDemo(){program_->setPlainText("N10 G90 G54 G0 X0 Y0 Z100\nN20 T1 D1 S8000 M3\nN30 G1 X100 Y50 Z20 A30 C45 F1000\nN40 G91 X5 C20\nN50 G90 G55 G0 X0 Y0 Z100\nN60 M5");cnc::ProgramLoader l;std::string e;l.load_text(program_->toPlainText().toStdString(),e);operator_.load(l.blocks());refresh();}
