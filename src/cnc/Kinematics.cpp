@@ -26,8 +26,14 @@ bool Kinematics::apply_swivel(double x,double y,double z,double a,double c,ToolP
  if(!std::isfinite(x)||!std::isfinite(y)||!std::isfinite(z)||!std::isfinite(a)||!std::isfinite(c)){e="non-finite swivel input";return false;}
  Vec3 v{x,y,z}; Vec3 aa=normv(config_.a_axis), cc=normv(config_.c_axis);
  if(dotv(aa,aa)<0.999999||dotv(cc,cc)<0.999999){e="invalid rotary axis vector";return false;}
- Vec3 r=rodrigues(v,aa,a); r=rodrigues(r,cc,c);
- out.tcp=r; out.tool_axis=normv(rodrigues(rodrigues({0,0,-1},aa,a),cc,c)); return true;
+ // Apply C rotation about its configured pivot, then A rotation about its pivot.
+ auto rotate_about=[](Vec3 p,Vec3 pivot,Vec3 axis,double deg){return pivot+rodrigues({p.x-pivot.x,p.y-pivot.y,p.z-pivot.z},axis,deg);};
+ Vec3 r=rotate_about(v,config_.pivot_c,cc,c);
+ r=rotate_about(r,config_.pivot_a,aa,a);
+ out.tcp=r;
+ Vec3 axis=rodrigues({0,0,-1},aa,a); axis=rodrigues(axis,cc,c);
+ out.tool_axis=normv(axis);
+ return true;
 }
 bool Kinematics::cycle800_reset(std::string&e){ (void)e; swivel_active_=false; swivel_pose_={}; return true; }
 bool Kinematics::cycle800_swivel(double a,double c,std::string&e){ ToolPose p{}; if(!apply_swivel(0,0,-1,a,c,p,e)) return false; swivel_pose_=p; swivel_active_=true; return true; }
