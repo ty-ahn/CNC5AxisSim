@@ -17,3 +17,6 @@ APT → MPF conversion is intentionally not part of this project.
 
 ## CI
 GitHub Actions builds the project on a Windows runner, runs CTest, performs a smoke test, and uploads the executable artifact.
+
+
+CI verification checkpoint: Windows x64 build/test/package validation for the current simulator core.
