@@ -3,7 +3,11 @@
 #include <vector>
 #include <string>
 namespace cnc {
-struct CollisionRecord { int block_number{-1}; CollisionEvent event{}; std::string message; };
+struct CollisionRecord {
+ int block_number{-1};
+ CollisionEvent event{};
+ std::string message;
+};
 class CollisionManager {
  std::vector<CollisionRecord> events_;
 public:
