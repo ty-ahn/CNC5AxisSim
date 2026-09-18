@@ -13,7 +13,9 @@ class ProgramExecutor {
 public:
  explicit ProgramExecutor(Runtime& r):runtime_(&r){}
  void load(const std::vector<Block>& b){blocks_=b; main_blocks_=b; subprograms_.clear();stack_.clear();program_=0;index_=0;steps_=0;error_.clear();labels_.clear();state_=ExecutionState::Idle; for(size_t i=0;i<blocks_.size();++i) if(blocks_[i].number>=0) labels_[blocks_[i].number]=i;}
- void add_subprogram(int number,const std::vector<Block>& b){subprograms_[number]=b;}\n void set_max_steps(size_t n){max_steps_=n;}\n bool start(){if(!runtime_||blocks_.empty())return false;if(state_==ExecutionState::Completed||state_==ExecutionState::Stopped)index_=0;state_=ExecutionState::Running;return step();}
+ void add_subprogram(int number,const std::vector<Block>& b){subprograms_[number]=b;}
+ void set_max_steps(size_t n){max_steps_=n;}
+ bool start(){if(!runtime_||blocks_.empty())return false;if(state_==ExecutionState::Completed||state_==ExecutionState::Stopped)index_=0;state_=ExecutionState::Running;return step();}
  bool step(){if(++steps_>max_steps_){error_="execution step limit exceeded";state_=ExecutionState::Error;return false;} if(state_==ExecutionState::Held||state_==ExecutionState::Error||index_>=blocks_.size()){if(index_>=blocks_.size())state_=ExecutionState::Completed;return false;} if(!runtime_->execute(blocks_[index_],error_)){state_=runtime_->feed_hold()?ExecutionState::Held:ExecutionState::Error;return false;}
   const auto& executed=blocks_[index_].source; std::string exu=executed; for(char& ch:exu) ch=char(std::toupper((unsigned char)ch));
   if(exu.find(" RET")!=std::string::npos || exu.rfind("RET",0)==0){ if(stack_.empty()){error_="RET without CALL";state_=ExecutionState::Error;return false;} auto fr=stack_.back(); stack_.pop_back(); if(fr.program==0){program_=0; blocks_=main_blocks_;} else {program_=fr.program;} labels_.clear(); for(size_t i=0;i<blocks_.size();++i) if(blocks_[i].number>=0) labels_[blocks_[i].number]=i; index_=fr.return_index; return true; }
@@ -25,7 +27,7 @@ public:
  void hold(){runtime_->hold();state_=ExecutionState::Held;}
  bool resume(){if(state_!=ExecutionState::Held)return false;runtime_->resume();if(runtime_->feed_hold())return false;state_=ExecutionState::Running;return step();}
  void stop(){state_=ExecutionState::Stopped;}
- void reset(){runtime_->reset();index_=0;state_=ExecutionState::Idle;error_.clear();}
+ void reset(){runtime_->reset();blocks_=main_blocks_;index_=0;program_=0;stack_.clear();labels_.clear();for(size_t i=0;i<blocks_.size();++i)if(blocks_[i].number>=0)labels_[blocks_[i].number]=i;steps_=0;state_=ExecutionState::Idle;error_.clear();}
  size_t current_block()const{return index_;}
  ExecutionState state()const{return state_;}
  const std::string& error()const{return error_;}
