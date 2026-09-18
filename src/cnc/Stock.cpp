@@ -24,6 +24,19 @@ bool Stock::sweep_tool_segment(const Vec3& p0,const Vec3& p1,const ToolGeometry&
  if(tool.shape==ToolShape::Ball) return remove_tool_segment(p0,p1,r);
  return remove_tool_segment(p0,p1,r);
 }
+CollisionEvent Stock::check_holder_stock(const Vec3& p0,const Vec3& p1,double radius) const{
+ CollisionEvent e{}; e.type=CollisionType::HolderStock;
+ if(cells_.empty()) return e;
+ double r2=radius*radius;
+ for(int z=0;z<nz_;++z)for(int yy=0;yy<ny_;++yy)for(int x=0;x<nx_;++x){
+  if(cells_[index(x,yy,z)].removed) continue;
+  Vec3 c{def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(yy+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution};
+  Vec3 v{p1.x-p0.x,p1.y-p0.y,p1.z-p0.z},w{c.x-p0.x,c.y-p0.y,c.z-p0.z};
+  double vv=v.x*v.x+v.y*v.y+v.z*v.z,t=vv>0?(w.x*v.x+w.y*v.y+w.z*v.z)/vv:0;t=std::clamp(t,0.0,1.0);
+  Vec3 q{p0.x+t*v.x,p0.y+t*v.y,p0.z+t*v.z}; double dx=c.x-q.x,dy=c.y-q.y,dz=c.z-q.z,d2=dx*dx+dy*dy+dz*dz;
+  if(d2<=r2){e.collision=true;e.position=c;e.penetration=radius-std::sqrt(d2);return e;}
+ } return e;
+}
 size_t Stock::removed_count()const{size_t n=0;for(const auto&c:cells_)if(c.removed)++n;return n;}
 bool Stock::is_removed(int x,int y,int z)const{return x>=0&&x<nx_&&y>=0&&y<ny_&&z>=0&&z<nz_&&cells_[index(x,y,z)].removed;}
 }
