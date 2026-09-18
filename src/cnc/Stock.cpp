@@ -51,7 +51,8 @@ size_t Stock::removed_count()const{size_t n=0;for(const auto&c:cells_)if(c.remov
 bool Stock::is_removed(int x,int y,int z)const{return x>=0&&x<nx_&&y>=0&&y<ny_&&z>=0&&z<nz_&&cells_[index(x,y,z)].removed;}
 double Stock::remaining_volume() const {return double(cells_.size()-removed_count())*def_.resolution*def_.resolution*def_.resolution;}
 std::vector<Vec3> Stock::removed_centers() const {std::vector<Vec3> out;out.reserve(removed_count());for(int z=0;z<nz_;++z)for(int y=0;y<ny_;++y)for(int x=0;x<nx_;++x)if(cells_[index(x,y,z)].removed)out.push_back({def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(y+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution});return out;}
-}\ndouble Stock::signed_distance(const Vec3& p) const {
+}
+double Stock::signed_distance(const Vec3& p) const {
  if(cells_.empty()) return 0;
  const double h=def_.resolution;
  const double xmin=def_.origin.x, ymin=def_.origin.y, zmin=def_.origin.z;
@@ -73,8 +74,24 @@ static Vec3 norm3(Vec3 v){
  double n=std::sqrt(v.x*v.x+v.y*v.y+v.z*v.z);
  return n<1e-12?Vec3{0,0,-1}:Vec3{v.x/n,v.y/n,v.z/n};
 }
-static Vec3 lerp3(Vec3 a,Vec3 b,double t){
- return {a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t};
+static Vec3 lerp3(Vec3 a,Vec3 b,double t){return {a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t};}
+static double cutter_radius(const ToolGeometry& t){
+ if(t.shape==ToolShape::BullNose) return std::max(t.radius,std::max(0.0,t.corner_radius));
+ return std::max(0.0,t.radius);
+}
+bool Stock::sweep_oriented_tool(const Vec3& tcp0,const Vec3& axis0,const Vec3& tcp1,const Vec3& axis1,const ToolGeometry& tool,int samples){
+ if(cells_.empty()||samples<1||!std::isfinite(tool.radius)||tool.radius<0||!std::isfinite(tool.length)||tool.length<0)return false;
+ Vec3 a0=norm3(axis0),a1=norm3(axis1); bool changed=false; double r=cutter_radius(tool);
+ Vec3 prev=tcp0;
+ for(int i=1;i<=samples;++i){
+  double t=double(i)/samples; Vec3 p=lerp3(tcp0,tcp1,t);
+  changed=remove_tool_segment(prev,p,r)||changed; prev=p;
+ }
+ double d=std::clamp(a0.x*a1.x+a0.y*a1.y+a0.z*a1.z,-1.0,1.0);
+ double angle=std::acos(d);
+ double envelope=r+tool.length*std::sin(0.5*angle);
+ if(envelope>r) changed=remove_tool_segment(tcp0,tcp1,envelope)||changed;
+ return changed;
 }
 bool Stock::sweep_oriented_tool(const Vec3& tcp0,const Vec3& axis0,const Vec3& tcp1,const Vec3& axis1,const ToolGeometry& tool,int samples){
  if(cells_.empty()||samples<1||!std::isfinite(tool.radius)||tool.radius<0)return false;
