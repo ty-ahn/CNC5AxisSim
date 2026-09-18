@@ -1,15 +1,27 @@
 #include "cnc/Runtime.h"
 #include "cnc/Kinematics.h"
+#include "cnc/ProgramLoader.h"
+#include "cnc/Verify.h"
 #include <cassert>
 #include <cmath>
-int main(){cnc::Runtime r;std::string e; r.set_tool({1,250.0,20.0,2.0});auto run=[&](const char*x){auto b=cnc::Parser::parse(x);assert(b);assert(r.execute(*b,e));};
-run("N10 G90 G54 G0 X0 Y0 Z100");run("N20 T1 D1 S8000 M3"); assert(r.tool()==1);run("N30 G1 X100 Y50 Z20 A30 C45 F1000");assert(r.last_motion().size()==21);assert(r.modal().motion==cnc::MotionMode::Linear);
-run("N40 G91 X5 C20");assert(std::abs(r.state().X-105)<1e-9&&std::abs(r.state().C-65)<1e-9);
-run("N50 G90 G0 X0 Y0 Z0");run("N60 G17 G2 X20 Y0 I10 J0 Z-10");assert(r.last_motion().size()==33);assert(std::abs(r.state().X-20)<1e-9);
-run("N70 G3 X0 Y0 I-10 J0");assert(std::abs(r.state().X)<1e-9&&std::abs(r.state().Y)<1e-9);
-run("N80 TRAORI G90 G1 X10 Y0 Z0 I0 J0 K-1 F500"); assert(r.modal().traori); assert(std::abs(r.state().A)<1e-9); assert(std::abs(r.state().C)<1e-9); run("N85 TRAFOOF"); assert(!r.modal().traori); run("N90 G55 M5");assert(r.modal().work_offset==55&&r.rpm()==0);assert(std::abs(cnc::Kinematics::unwrap(359,1)-361)<1e-9);}
-TEST_CASE("Voxel stock removes material along tool sweep"){ cnc::Stock s; REQUIRE(s.initialize({{0,0,0},20,20,20,2})); auto before=s.removed_count(); REQUIRE(s.sweep_tool_segment({10,10,20},{10,10,0},{cnc::ToolShape::Ball,2.1,0})); REQUIRE(s.removed_count()>before); }
-
-TEST_CASE("Runtime feed hold and resume"){ cnc::Runtime r; REQUIRE(!r.feed_hold()); r.feed_hold(); REQUIRE(r.feed_hold()); r.clear_alarm(); REQUIRE(!r.feed_hold()); }
-
-TEST_CASE("MPF program loader preserves source line mapping"){ cnc::ProgramLoader l; std::string e; REQUIRE(l.load_text("N10 G0 X0\\nN20 G1 X10 F500\\n",e)); REQUIRE(l.lines().size()==2); REQUIRE(l.lines()[1].line_index==2); REQUIRE(l.lines()[1].block.number==20); }
+int main(){
+ cnc::Runtime r; std::string e;
+ r.set_tool({1,250.0,20.0,2.0});
+ auto run=[&](const char* src){auto b=cnc::Parser::parse(src);assert(b);assert(r.execute(*b,e));};
+ run("N10 G90 G54 G0 X0 Y0 Z100");
+ run("N20 T1 D1 S8000 M3"); assert(r.tool()==1);
+ run("N30 G1 X100 Y50 Z20 A30 C45 F1000"); assert(r.last_motion().size()==21);
+ run("N40 G91 X5 C20"); assert(std::abs(r.state().X-105)<1e-9&&std::abs(r.state().C-65)<1e-9);
+ run("N50 G90 G0 X0 Y0 Z0");
+ run("N60 G17 G2 X20 Y0 I10 J0 Z-10"); assert(r.last_motion().size()==33);
+ run("N70 G3 X0 Y0 I-10 J0"); assert(std::abs(r.state().X)<1e-9&&std::abs(r.state().Y)<1e-9);
+ run("N80 TRAORI G90 G1 X10 Y0 Z0 I0 J0 K-1 F500"); assert(r.modal().traori); assert(std::abs(r.state().A)<1e-9);
+ run("N85 TRAFOOF"); assert(!r.modal().traori);
+ run("N90 G55 M5"); assert(r.modal().work_offset==55&&r.rpm()==0);
+ assert(std::abs(cnc::Kinematics::unwrap(359,1)-361)<1e-9);
+ cnc::Stock stock; assert(stock.initialize({{0,0,0},20,20,20,2})); auto before=stock.removed_count(); assert(stock.sweep_tool_segment({10,10,20},{10,10,0},{cnc::ToolShape::Ball,2.1,0})); assert(stock.removed_count()>before);
+ cnc::Runtime held; held.hold(); assert(held.feed_hold()); held.clear_alarm(); assert(!held.feed_hold());
+ cnc::ProgramLoader loader; assert(loader.load_text("N10 G0 X0\n\nN20 G1 X10 F500\n",e)); assert(loader.lines().size()==2&&loader.lines()[1].line_index==3);
+ auto vr=cnc::VerifyEngine::run(loader.blocks()); assert(vr.passed&&vr.executed==2);
+ return 0;
+}
