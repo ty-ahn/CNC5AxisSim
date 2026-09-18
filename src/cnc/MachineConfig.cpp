@@ -2,7 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <regex>
-#include <cmath>\n#include <algorithm>
+#include <cmath>
+#include <algorithm>
 namespace cnc {
 static bool num(const std::string&s,const std::string& key,double&v){std::regex r("\""+key+"\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9]+)?)");std::smatch m;if(!std::regex_search(s,m,r))return false;v=std::stod(m[1]);return true;}
 bool MachineConfig::load_json(const std::string& path,std::string& e){
