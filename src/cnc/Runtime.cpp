@@ -27,11 +27,11 @@ bool Runtime::execute(const Block&b,std::string&e){ if(feed_hold_){e=alarm_;retu
  state_=next;modal_=m;feed_=f;rpm_=s;tool_=t;d_=d;return true;
 }
 bool Runtime::save_machine_config(const std::string& path,std::string&e) const{
- MachineConfig c; // Reconstruct a config from the active runtime tree.
- // MachineConfig owns its tree privately, so use a temporary JSON-compatible tree writer here.
  std::ofstream f(path);if(!f){e="cannot write machine config";return false;}
- f<<"{\n  \"machine\": {\n    \"name\": \"RUNTIME_MACHINE\",\n    \"nodes\": [\n";
- for(size_t i=0;i<machine_nodes_.size();++i){const auto&n=machine_nodes_[i];const char*t=n.type==MachineNodeType::LinearAxis?"linear":n.type==MachineNodeType::RotaryAxis?"rotary":n.type==MachineNodeType::Tool?"tool":n.type==MachineNodeType::Holder?"holder":"fixture";f<<"      {\"name\":\""<<n.name<<"\",\"type\":\""<<t<<"\",\"parent\": "<<(n.parent.empty()?"null":"\""+n.parent+"\"")<<",\"axis\":["<<n.axis.x<<","<<n.axis.y<<","<<n.axis.z<<"],\"pivot\":["<<n.pivot.x<<","<<n.pivot.y<<","<<n.pivot.z<<"],\"limit\":{\"min\":"<<n.min<<",\"max\":"<<n.max<<",\"wrap\":"<<(n.wrap?"true":"false")<<"},\"mesh\":\""<<n.mesh<<"\",\"collision\":"<<(n.collision_enabled?"true":"false")<<"}"<<(i+1<machine_nodes_.size()?",":"")<<"\n";}
+ f<<"{\n  \"machine\": {\n    \"name\": \""<<json_escape(machine_name_)<<"\",\n    \"nodes\": [\n";
+ for(size_t i=0;i<machine_nodes_.size();++i){const auto&n=machine_nodes_[i];const char*t=n.type==MachineNodeType::LinearAxis?"linear":n.type==MachineNodeType::RotaryAxis?"rotary":n.type==MachineNodeType::Tool?"tool":n.type==MachineNodeType::Holder?"holder":"fixture";
+  f<<"      {\"name\": \""<<json_escape(n.name)<<"\", \"type\": \""<<t<<"\", \"parent\": "<<(n.parent.empty()?"null":"\""+json_escape(n.parent)+"\"")<<", \"axis\": ["<<n.axis.x<<", "<<n.axis.y<<", "<<n.axis.z<<"], \"pivot\": ["<<n.pivot.x<<", "<<n.pivot.y<<", "<<n.pivot.z<<"], \"limit\": {\"min\": "<<n.min<<", \"max\": "<<n.max<<", \"wrap\": "<<(n.wrap?"true":"false")<<"}, \"mesh\": \""<<json_escape(n.mesh)<<"\", \"collision\": "<<(n.collision_enabled?"true":"false")<<"}"<<(i+1<machine_nodes_.size()?",":"")<<"\n";
+ }
  f<<"    ]\n  }\n}\n";return true;
 }
 bool Runtime::update_machine_node(const MachineNode& n,std::string&e){
