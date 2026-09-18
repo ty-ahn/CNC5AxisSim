@@ -12,7 +12,7 @@ struct MachineNode {
  Vec3 axis{0,0,1};
  Vec3 pivot{};
  double min{}, max{};
- bool wrap{};
+ bool wrap{};\n Aabb collision_bounds{};\n bool collision_enabled{false};
 };
 class MachineConfig {
  MachineKinematicConfig k_{};
