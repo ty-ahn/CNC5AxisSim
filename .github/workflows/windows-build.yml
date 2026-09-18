@@ -41,7 +41,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item "build\Release\CNC5AxisSim.exe" "dist\CNC5AxisSim.exe"\n          if (Test-Path "build\Release\CNC5AxisSimQt.exe") { Copy-Item "build\Release\CNC5AxisSimQt.exe" "dist\CNC5AxisSimQt.exe"; & "$env:Qt6_DIR\bin\windeployqt.exe" --release --no-translations "dist\CNC5AxisSimQt.exe" }
+          Copy-Item "build\Release\CNC5AxisSim.exe" "dist\CNC5AxisSim.exe"\n          if (Test-Path "build\Release\CNC5AxisSimQt.exe") { Copy-Item "build\Release\CNC5AxisSimQt.exe" "dist\CNC5AxisSimQt.exe"; & windeployqt.exe --release --no-translations "dist\CNC5AxisSimQt.exe" }
           Compress-Archive -Path "dist\*" -DestinationPath CNC5AxisSim-Windows-x64.zip -Force
 
       - name: Upload artifact
