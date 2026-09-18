@@ -43,5 +43,9 @@ public:
  size_t current_block()const{return index_;}
  ExecutionState state()const{return state_;}
  const std::string& error()const{return error_;}
+ size_t steps()const{return steps_;}
+ size_t max_steps()const{return max_steps_;}
+ bool in_subprogram()const{return program_!=0;}
+ int current_program()const{return program_;}
 };
 }
