@@ -79,26 +79,10 @@ static double cutter_radius(const ToolGeometry& t){
  if(t.shape==ToolShape::BullNose) return std::max(t.radius,std::max(0.0,t.corner_radius));
  return std::max(0.0,t.radius);
 }
+static double pose_radius_at(const ToolGeometry& t,double z){ const double R=std::max(0.0,t.radius),L=std::max(0.0,t.length); if(R<=0||z<0||z>L)return 0; if(t.shape==ToolShape::Ball){if(z<R)return std::sqrt(std::max(0.0,R*R-(R-z)*(R-z)));return R;} if(t.shape==ToolShape::BullNose){const double cr=std::clamp(t.corner_radius,0.0,R);if(cr<=1e-12)return R;if(z<cr)return R-cr+std::sqrt(std::max(0.0,cr*cr-(cr-z)*(cr-z)));return R;} return R; }
+static bool remove_oriented_pose(Stock& stock,const Vec3& tip,const Vec3& axis,const ToolGeometry& tool){ const auto& d=stock.definition(); const double h=d.resolution,R=cutter_radius(tool),L=std::max(0.0,tool.length); if(R<=0||L<=0)return false; const int nx=std::max(1,(int)std::ceil(d.size_x/h)),ny=std::max(1,(int)std::ceil(d.size_y/h)),nz=std::max(1,(int)std::ceil(d.size_z/h)); const Vec3 a=norm3(axis); const double reach=R+L; const int ix0=std::clamp((int)std::floor((tip.x-reach-d.origin.x)/h)-1,0,nx-1),ix1=std::clamp((int)std::floor((tip.x+reach-d.origin.x)/h)+1,0,nx-1); const int iy0=std::clamp((int)std::floor((tip.y-reach-d.origin.y)/h)-1,0,ny-1),iy1=std::clamp((int)std::floor((tip.y+reach-d.origin.y)/h)+1,0,ny-1); const int iz0=std::clamp((int)std::floor((tip.z-reach-d.origin.z)/h)-1,0,nz-1),iz1=std::clamp((int)std::floor((tip.z+reach-d.origin.z)/h)+1,0,nz-1); bool changed=false; for(int z=iz0;z<=iz1;++z)for(int y=iy0;y<=iy1;++y)for(int x=ix0;x<=ix1;++x)if(!stock.is_removed(x,y,z)){Vec3 p{d.origin.x+(x+.5)*h,d.origin.y+(y+.5)*h,d.origin.z+(z+.5)*h};Vec3 q{p.x-tip.x,p.y-tip.y,p.z-tip.z};double s=std::clamp(q.x*a.x+q.y*a.y+q.z*a.z,0.0,L);Vec3 r{q.x-a.x*s,q.y-a.y*s,q.z-a.z*s};double rr=pose_radius_at(tool,s);if(r.x*r.x+r.y*r.y+r.z*r.z<=rr*rr){stock.remove_tool_segment(p,p,0.0);changed=true;}} return changed; }
 bool Stock::sweep_oriented_tool(const Vec3& tip0,const Vec3& axis0,const Vec3& tip1,const Vec3& axis1,const ToolGeometry& tool,int samples){
  if(cells_.empty()||samples<1||!std::isfinite(tool.radius)||tool.radius<0||!std::isfinite(tool.length)||tool.length<0)return false;
- Vec3 a0=norm3(axis0),a1=norm3(axis1); bool changed=false;
- const double r=cutter_radius(tool);
- auto top=[&](const Vec3& tip,const Vec3& axis){return Vec3{tip.x+axis.x*tool.length,tip.y+axis.y*tool.length,tip.z+axis.z*tool.length};};
- Vec3 prev_tip=tip0,prev_axis=a0;
- for(int i=1;i<=samples;++i){
-  double t=double(i)/samples;
-  Vec3 tip=lerp3(tip0,tip1,t);
-  Vec3 axis=norm3(lerp3(a0,a1,t));
-  Vec3 prev_top=top(prev_tip,prev_axis),next_top=top(tip,axis);
-  changed=remove_tool_segment(prev_tip,tip,r)||changed;
-  changed=remove_tool_segment(prev_top,next_top,r)||changed;
-  changed=remove_tool_segment(tip,next_top,r)||changed;
-  prev_tip=tip; prev_axis=axis;
- }
- double d=std::clamp(a0.x*a1.x+a0.y*a1.y+a0.z*a1.z,-1.0,1.0);
- double angle=std::acos(d);
- double envelope=r+tool.length*std::sin(0.5*angle);
- if(envelope>r) changed=remove_tool_segment(tip0,tip1,envelope)||changed;
- return changed;
-}
+ Vec3 a0=norm3(axis0),a1=norm3(axis1); bool changed=false; Vec3 prev_tip=tip0;
+ for(int i=0;i<=samples;++i){double t=double(i)/samples;Vec3 tip=lerp3(tip0,tip1,t);Vec3 axis=norm3(lerp3(a0,a1,t));changed=remove_oriented_pose(*this,tip,axis,tool)||changed;if(i>0)changed=remove_tool_segment(prev_tip,tip,cutter_radius(tool))||changed;prev_tip=tip;} return changed;
 }
