@@ -81,11 +81,19 @@ static double cutter_radius(const ToolGeometry& t){
 }
 bool Stock::sweep_oriented_tool(const Vec3& tcp0,const Vec3& axis0,const Vec3& tcp1,const Vec3& axis1,const ToolGeometry& tool,int samples){
  if(cells_.empty()||samples<1||!std::isfinite(tool.radius)||tool.radius<0||!std::isfinite(tool.length)||tool.length<0)return false;
- Vec3 a0=norm3(axis0),a1=norm3(axis1); bool changed=false; double r=cutter_radius(tool);
- Vec3 prev=tcp0;
+ Vec3 a0=norm3(axis0),a1=norm3(axis1); bool changed=false;
+ const double r=cutter_radius(tool);
+ auto tip=[&](const Vec3& tcp,const Vec3& axis){return Vec3{tcp.x-axis.x*tool.length,tcp.y-axis.y*tool.length,tcp.z-axis.z*tool.length};};
+ Vec3 prev_tcp=tcp0,prev_axis=a0;
  for(int i=1;i<=samples;++i){
-  double t=double(i)/samples; Vec3 p=lerp3(tcp0,tcp1,t);
-  changed=remove_tool_segment(prev,p,r)||changed; prev=p;
+  double t=double(i)/samples;
+  Vec3 tcp=lerp3(tcp0,tcp1,t);
+  Vec3 axis=norm3(lerp3(a0,a1,t));
+  Vec3 p0=tip(prev_tcp,prev_axis),p1=tip(tcp,axis);
+  changed=remove_tool_segment(prev_tcp,tcp,r)||changed;
+  changed=remove_tool_segment(p0,p1,r)||changed;
+  changed=remove_tool_segment(tcp,p1,r)||changed;
+  prev_tcp=tcp; prev_axis=axis;
  }
  double d=std::clamp(a0.x*a1.x+a0.y*a1.y+a0.z*a1.z,-1.0,1.0);
  double angle=std::acos(d);
