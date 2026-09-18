@@ -9,7 +9,10 @@ static Vec3 crossv(Vec3 a,Vec3 b){return {a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.
 static double dotv(Vec3 a,Vec3 b){return a.x*b.x+a.y*b.y+a.z*b.z;}
 static Vec3 rodrigues(Vec3 v,Vec3 axis,double deg){constexpr double d=3.14159265358979323846/180.0;axis=normv(axis);double r=deg*d,c=std::cos(r),s=std::sin(r);Vec3 cr=crossv(axis,v);return {v.x*c+cr.x*s+axis.x*dotv(axis,v)*(1-c),v.y*c+cr.y*s+axis.y*dotv(axis,v)*(1-c),v.z*c+cr.z*s+axis.z*dotv(axis,v)*(1-c)};}
 Vec3 Kinematics::axis_from_ac(double A,double C){constexpr double d=3.14159265358979323846/180.0;double a=A*d,c=C*d;return {std::sin(a)*std::cos(c),std::sin(a)*std::sin(c),-std::cos(a)};}
-Vec3 Kinematics::tcp_from_machine(const MachineState&s,double L){auto q=axis_from_ac(s.A,s.C);double reach=config_.a_to_c+config_.c_to_tool+L; return {s.X-reach*q.x,s.Y-reach*q.y,s.Z-reach*q.z};}
+Vec3 Kinematics::tcp_from_machine(const MachineState&s,double L){
+ Vec3 q=axis_from_ac(s.A,s.C); double reach=config_.a_to_c+config_.c_to_tool+L;
+ return {s.X-reach*q.x,s.Y-reach*q.y,s.Z-reach*q.z};
+}
 bool Kinematics::validate(const MachineState&s,std::string&e)const{if(!std::isfinite(s.X)||!std::isfinite(s.Y)||!std::isfinite(s.Z)||!std::isfinite(s.A)||!std::isfinite(s.C)){e="non-finite axis";return false;}const auto check=[&](double v,const AxisLimit& l,const char* n){if(l.wrap)return true;if(v<l.minimum||v>l.maximum){e=std::string(n)+" axis limit";return false;}return true;}; if(!check(s.X,config_.X,"X")||!check(s.Y,config_.Y,"Y")||!check(s.Z,config_.Z,"Z")||!check(s.A,config_.A,"A")||!check(s.C,config_.C,"C"))return false;return true;}
 bool Kinematics::inverse_kinematics(const ToolPose&p,const MachineState&seed,double L,IKResult&o,std::string&e){
  double n=std::sqrt(p.tool_axis.x*p.tool_axis.x+p.tool_axis.y*p.tool_axis.y+p.tool_axis.z*p.tool_axis.z);if(n<1e-12){e="zero tool axis";return false;}
