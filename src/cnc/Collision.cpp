@@ -16,4 +16,9 @@ CollisionEvent CollisionManager::check_holder_machine(const Vec3&p0,const Vec3&p
  for(const auto&body:machine_bodies_){Aabb b=body.bounds;b.min.x-=radius;b.min.y-=radius;b.min.z-=radius;b.max.x+=radius;b.max.y+=radius;b.max.z+=radius;double pen;Vec3 hit;if(segment_aabb(p0,p1,b,pen,hit)&&(!best.collision||pen>best.penetration))best={CollisionType::HolderMachine,hit,pen,true};}
  return best;
 }
+std::vector<MachineCollisionSnapshot> CollisionManager::check_all_machine_bodies(const Vec3&p0,const Vec3&p1,double radius)const{
+ std::vector<MachineCollisionSnapshot> out; if(radius<0)return out;
+ for(const auto&body:machine_bodies_){Aabb b=body.bounds;b.min.x-=radius;b.min.y-=radius;b.min.z-=radius;b.max.x+=radius;b.max.y+=radius;b.max.z+=radius;double pen;Vec3 hit;if(segment_aabb(p0,p1,b,pen,hit))out.push_back({body.name,{CollisionType::HolderMachine,hit,pen,true}});}
+ return out;
+}
 }
