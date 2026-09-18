@@ -12,10 +12,13 @@ cnc::Vec3 rv(cnc::Vec3 v, cnc::Vec3 axis, double deg){
  return {v.x*co+cr.x*si+axis.x*d*(1-co),v.y*co+cr.y*si+axis.y*d*(1-co),v.z*co+cr.z*si+axis.z*d*(1-co)};
 }
 void rotatePivot(cnc::Vec3& p,const cnc::Vec3& pivot,const cnc::Vec3& axis,double deg){p.x-=pivot.x;p.y-=pivot.y;p.z-=pivot.z;p=rv(p,axis,deg);p.x+=pivot.x;p.y+=pivot.y;p.z+=pivot.z;}
-cnc::Vec3 transformNode(cnc::Vec3 p,const cnc::MachineNode& n,const cnc::MachineState& s,const cnc::MachineKinematicConfig& k){
- if(n.name=="C"){rotatePivot(p,k.pivot_c,k.c_axis,s.C); return transformNode(p,cnc::MachineNode{"A",cnc::MachineNodeType::RotaryAxis,"","",k.a_axis,k.pivot_a,0,0,false,{},false},s,k);}
- if(n.name=="A"){rotatePivot(p,k.pivot_a,k.a_axis,s.A);}
- if(n.name=="Z")p.z+=s.Z; else if(n.name=="Y")p.y+=s.Y; else if(n.name=="X")p.x+=s.X;
+cnc::Vec3 transformNode(cnc::Vec3 p,const cnc::MachineNode& n,const cnc::MachineState& state,const cnc::MachineKinematicConfig& k){
+ std::string parent=n.parent;
+ if(parent=="C"){ rotatePivot(p,k.pivot_c,k.c_axis,state.C); parent="A"; }
+ if(parent=="A"){ rotatePivot(p,k.pivot_a,k.a_axis,state.A); parent="Z"; }
+ if(parent=="Z") p.z+=state.Z;
+ else if(parent=="Y") p.y+=state.Y;
+ else if(parent=="X") p.x+=state.X;
  return p;
 }
 QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pitch,float zoom){
