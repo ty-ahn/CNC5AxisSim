@@ -20,8 +20,29 @@ bool MachineConfig::load_json(const std::string& path,std::string& e){
  struct B{MachineNode n;bool seen[6]{};}; std::vector<B> bodies;
  for(std::sregex_iterator it(s.begin(),s.end(),body),endit;it!=endit;++it){std::string name=(*it)[1],key=(*it)[2];double v=std::stod((*it)[3]);auto bi=std::find_if(bodies.begin(),bodies.end(),[&](const B&b){return b.n.name==name;});if(bi==bodies.end()){B b{};b.n.name=name;b.n.type=MachineNodeType::Fixture;bi=bodies.insert(bodies.end(),b)-1;}int k=key=="min_x"?0:key=="max_x"?1:key=="min_y"?2:key=="max_y"?3:key=="min_z"?4:5;bi->n.collision_enabled=true;bi->n.collision_bounds.min.x=k==0?v:bi->n.collision_bounds.min.x;bi->n.collision_bounds.max.x=k==1?v:bi->n.collision_bounds.max.x;bi->n.collision_bounds.min.y=k==2?v:bi->n.collision_bounds.min.y;bi->n.collision_bounds.max.y=k==3?v:bi->n.collision_bounds.max.y;bi->n.collision_bounds.min.z=k==4?v:bi->n.collision_bounds.min.z;bi->n.collision_bounds.max.z=k==5?v:bi->n.collision_bounds.max.z;}
  for(auto& n:nodes_){std::regex mr("\"body_"+n.name+"_mesh\"\\s*:\\s*\"([^\"]+)\"");std::smatch mm;if(std::regex_search(s,mm,mr))n.mesh=mm[1];}
- for(const auto& b:bodies)nodes_.push_back(b.n); for(auto& n:nodes_){ if(n.name=="X") n.parent=""; else if(n.name=="Y") n.parent="X"; else if(n.name=="Z") n.parent="Y"; else if(n.name=="A") n.parent="Z"; else if(n.name=="C") n.parent="A"; } return true;
+ for(const auto& b:bodies)nodes_.push_back(b.n); for(auto& n:nodes_){ if(n.name=="X") n.parent=""; else if(n.name=="Y") n.parent="X"; else if(n.name=="Z") n.parent="Y"; else if(n.name=="A") n.parent="Z"; else if(n.name=="C") n.parent="A"; } return validate_tree(e);
 }
+bool MachineConfig::validate_tree(std::string& error) const{
+ if(nodes_.empty()){error="machine kinematic tree is empty";return false;}
+ for(const auto& n:nodes_){
+  if(n.name.empty()){error="machine node has empty name";return false;}
+  if(n.name==n.parent){error="machine node cannot parent itself: "+n.name;return false;}
+  if(n.type==MachineNodeType::LinearAxis||n.type==MachineNodeType::RotaryAxis){
+   double m=std::sqrt(n.axis.x*n.axis.x+n.axis.y*n.axis.y+n.axis.z*n.axis.z);
+   if(m<1e-12){error="machine axis vector is zero: "+n.name;return false;}
+  }
+  if(n.parent.empty())continue;
+  auto p=std::find_if(nodes_.begin(),nodes_.end(),[&](const MachineNode& x){return x.name==n.parent;});
+  if(p==nodes_.end()){error="missing machine parent: "+n.name+" -> "+n.parent;return false;}
+  std::string cur=n.parent;for(int depth=0;depth<64&&!cur.empty();++depth){
+   auto q=std::find_if(nodes_.begin(),nodes_.end(),[&](const MachineNode& x){return x.name==cur;});
+   if(q==nodes_.end())break;cur=q->parent;
+   if(cur==n.name){error="machine kinematic cycle: "+n.name;return false;}
+  }
+ }
+ return true;
+}
+
 bool MachineConfig::save_json(const std::string& path,std::string&e)const{
  std::ofstream f(path);if(!f){e="cannot write machine config";return false;}
  f<<"{\n  \"name\": \""<<name_<<"\",\n  \"X_min\": "<<k_.X.minimum<<", \"X_max\": "<<k_.X.maximum<<",\n  \"Y_min\": "<<k_.Y.minimum<<", \"Y_max\": "<<k_.Y.maximum<<",\n  \"Z_min\": "<<k_.Z.minimum<<", \"Z_max\": "<<k_.Z.maximum<<",\n  \"A_min\": "<<k_.A.minimum<<", \"A_max\": "<<k_.A.maximum<<",\n  \"C_min\": "<<k_.C.minimum<<", \"C_max\": "<<k_.C.maximum<<",\n  \"a_to_c\": "<<k_.a_to_c<<", \"c_to_tool\": "<<k_.c_to_tool<<",\n  \"A_axis_x\": "<<k_.a_axis.x<<", \"A_axis_y\": "<<k_.a_axis.y<<", \"A_axis_z\": "<<k_.a_axis.z<<",\n  \"C_axis_x\": "<<k_.c_axis.x<<", \"C_axis_y\": "<<k_.c_axis.y<<", \"C_axis_z\": "<<k_.c_axis.z<<",\n  \"A_pivot_x\": "<<k_.pivot_a.x<<", \"A_pivot_y\": "<<k_.pivot_a.y<<", \"A_pivot_z\": "<<k_.pivot_a.z<<",\n  \"C_pivot_x\": "<<k_.pivot_c.x<<", \"C_pivot_y\": "<<k_.pivot_c.y<<", \"C_pivot_z\": "<<k_.pivot_c.z<<"\n}\n";return true;
