@@ -19,6 +19,6 @@ public:
  static double unwrap(double previous,double target);
  static Vec3 axis_from_ac(double A,double C);
  static Vec3 tcp_from_machine(const MachineState&,double tool_length);
- bool inverse_kinematics(const ToolPose&,const MachineState&,double tool_length,IKResult&,std::string&);
+ bool inverse_kinematics(const ToolPose&,const MachineState&,double tool_length,IKResult&,std::string&);\n bool orientation_move(const ToolPose&,const MachineState&,double,std::vector<MachineState>&,std::string&,int samples=20);\n bool apply_swivel(double,double,double,double,double,ToolPose&,std::string&) const;\n bool cycle800_reset(std::string&);\n bool cycle800_swivel(double,double,std::string&);\n bool cycle800_active() const{return swivel_active_;}
 };
 }
