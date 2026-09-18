@@ -1,6 +1,7 @@
 #include "Stock.h"
 #include <algorithm>
-#include <cmath>\n#include <limits>
+#include <cmath>
+#include <limits>
 namespace cnc {
 static double dist2_segment(const Vec3& c,const Vec3& p0,const Vec3& p1){
  Vec3 v{p1.x-p0.x,p1.y-p0.y,p1.z-p0.z},w{c.x-p0.x,c.y-p0.y,c.z-p0.z};
@@ -93,19 +94,7 @@ bool Stock::sweep_oriented_tool(const Vec3& tcp0,const Vec3& axis0,const Vec3& t
  if(envelope>r) changed=remove_tool_segment(tcp0,tcp1,envelope)||changed;
  return changed;
 }
-bool Stock::sweep_oriented_tool(const Vec3& tcp0,const Vec3& axis0,const Vec3& tcp1,const Vec3& axis1,const ToolGeometry& tool,int samples){
- if(cells_.empty()||samples<1||!std::isfinite(tool.radius)||tool.radius<0)return false;
- Vec3 a0=norm3(axis0),a1=norm3(axis1);
- bool changed=false;
- Vec3 prev=tcp0;
- for(int i=1;i<=samples;++i){
-  double t=double(i)/samples;
-  Vec3 p=lerp3(tcp0,tcp1,t);
-  double r=tool.radius;
-  if(tool.shape==ToolShape::BullNose) r=std::max(tool.radius,std::max(0.0,tool.corner_radius));
-  changed=remove_tool_segment(prev,p,r)||changed;
-  prev=p;
- }
+
  // Rotating cutter envelope: connect interpolated TCP positions and conservatively
  // enlarge by the maximum lateral displacement caused by axis change.
  double dot=std::clamp(a0.x*a1.x+a0.y*a1.y+a0.z*a1.z,-1.0,1.0);
