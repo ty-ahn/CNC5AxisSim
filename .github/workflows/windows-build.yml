@@ -1,4 +1,5 @@
 name: CNC5AxisSim Windows Build
+# CI validation trigger
 
 on:
   push:
