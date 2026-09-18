@@ -53,11 +53,18 @@ double Stock::remaining_volume() const {return double(cells_.size()-removed_coun
 std::vector<Vec3> Stock::removed_centers() const {std::vector<Vec3> out;out.reserve(removed_count());for(int z=0;z<nz_;++z)for(int y=0;y<ny_;++y)for(int x=0;x<nx_;++x)if(cells_[index(x,y,z)].removed)out.push_back({def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(y+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution});return out;}
 }\ndouble Stock::signed_distance(const Vec3& p) const {
  if(cells_.empty()) return 0;
- double best=std::numeric_limits<double>::infinity();
- for(int z=0;z<nz_;++z)for(int y=0;y<ny_;++y)for(int x=0;x<nx_;++x) if(!cells_[index(x,y,z)].removed){
-  Vec3 c{def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(y+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution};
-  double dx=p.x-c.x,dy=p.y-c.y,dz=p.z-c.z;
-  best=std::min(best,std::sqrt(dx*dx+dy*dy+dz*dz));
- }
- return std::isfinite(best)?best:0;
+ const double h=def_.resolution;
+ const double xmin=def_.origin.x, ymin=def_.origin.y, zmin=def_.origin.z;
+ const double xmax=xmin+def_.size_x, ymax=ymin+def_.size_y, zmax=zmin+def_.size_z;
+ double dx=std::max({xmin-p.x,0.0,p.x-xmax});
+ double dy=std::max({ymin-p.y,0.0,p.y-ymax});
+ double dz=std::max({zmin-p.z,0.0,p.z-zmax});
+ double outside=std::sqrt(dx*dx+dy*dy+dz*dz);
+ int ix=std::clamp((int)std::floor((p.x-xmin)/h),0,nx_-1);
+ int iy=std::clamp((int)std::floor((p.y-ymin)/h),0,ny_-1);
+ int iz=std::clamp((int)std::floor((p.z-zmin)/h),0,nz_-1);
+ bool removed=is_removed(ix,iy,iz);
+ double fx=(p.x-(xmin+ix*h))/h,fy=(p.y-(ymin+iy*h))/h,fz=(p.z-(zmin+iz*h))/h;
+ double local=std::min({fx,1.0-fx,fy,1.0-fy,fz,1.0-fz})*h;
+ return removed ? outside+local : -(outside+local);
 }
