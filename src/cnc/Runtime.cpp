@@ -1,101 +1,17 @@
 #include "Runtime.h"
 #include <cmath>
-
-namespace cnc {
-
-static int code(const Word& w) {
-    return static_cast<int>(std::llround(w.value));
+namespace cnc{
+static int code(const Word&w){return static_cast<int>(std::llround(w.value));}
+bool Runtime::execute(const Block&b,std::string&e){
+ auto next=state_;auto m=modal_;double f=feed_,s=rpm_;int t=tool_,d=d_;bool move=false;ArcDefinition arc{};
+ for(const auto&w:b.words)switch(w.letter){
+ case'G':switch(code(w)){case 0:m.motion=MotionMode::Rapid;break;case 1:m.motion=MotionMode::Linear;break;case 2:m.motion=MotionMode::ArcCW;break;case 3:m.motion=MotionMode::ArcCCW;break;case 17:m.plane=17;break;case 18:m.plane=18;break;case 19:m.plane=19;break;case 54:m.work_offset=54;break;case 55:m.work_offset=55;break;case 90:m.absolute=true;break;case 91:m.absolute=false;break;case 94:m.feed_mode=94;break;case 95:m.feed_mode=95;break;default:break;}break;
+ case'X':next.X=m.absolute?w.value:next.X+w.value;move=true;break;case'Y':next.Y=m.absolute?w.value:next.Y+w.value;move=true;break;case'Z':next.Z=m.absolute?w.value:next.Z+w.value;move=true;break;case'A':next.A=m.absolute?w.value:next.A+w.value;move=true;break;case'C':next.C=m.absolute?w.value:next.C+w.value;move=true;break;
+ case'I':arc.I=w.value;break;case'J':arc.J=w.value;break;case'K':arc.K=w.value;break;
+ case'F':if(w.value<0){e="Negative feed is invalid";return false;}f=w.value;break;case'S':if(w.value<0){e="Negative spindle speed is invalid";return false;}s=w.value;break;case'T':t=code(w);break;case'D':d=code(w);break;
+ case'M':switch(code(w)){case 3:m.spindle_direction=1;break;case 4:m.spindle_direction=-1;break;case 5:m.spindle_direction=0;s=0;break;case 8:m.coolant=true;break;case 9:m.coolant=false;break;default:break;}break;default:break;}
+ if(move){MotionPoint a{state_.X,state_.Y,state_.Z,state_.A,state_.C},z{next.X,next.Y,next.Z,next.A,next.C};bool ok;if(m.motion==MotionMode::ArcCW||m.motion==MotionMode::ArcCCW){if(m.plane!=17){e="G2/G3 currently supports G17 XY plane only";return false;}ok=ArcPlanner::plan(a,z,arc,m.motion==MotionMode::ArcCW,f,last_motion_,e);}else ok=MotionPlanner::plan(a,z,m.motion==MotionMode::Rapid,f,last_motion_,e);if(!ok)return false;}else{if(!Kinematics().validate(next,e))return false;last_motion_.clear();}
+ state_=next;modal_=m;feed_=f;rpm_=s;tool_=t;d_=d;return true;
 }
-
-bool Runtime::execute(const Block& b, std::string& error) {
-    auto next = state_;
-    auto next_modal = modal_;
-    double next_feed = feed_, next_rpm = rpm_;
-    int next_tool = tool_, next_d = d_;
-
-    // Siemens-style modal words are applied in block order.
-    for (const auto& w : b.words) {
-        switch (w.letter) {
-        case 'G':
-            switch (code(w)) {
-            case 0:  next_modal.motion = MotionMode::Rapid; break;
-            case 1:  next_modal.motion = MotionMode::Linear; break;
-            case 2:  next_modal.motion = MotionMode::ArcCW; break;
-            case 3:  next_modal.motion = MotionMode::ArcCCW; break;
-            case 17: next_modal.plane = 17; break;
-            case 18: next_modal.plane = 18; break;
-            case 19: next_modal.plane = 19; break;
-            case 54: next_modal.work_offset = 54; break;
-            case 55: next_modal.work_offset = 55; break;
-            case 90: next_modal.absolute = true; break;
-            case 91: next_modal.absolute = false; break;
-            case 94: /* feed per minute */ break;
-            case 95: /* feed per revolution */ break;
-            default: break;
-            }
-            break;
-
-        case 'X':
-            next.X = next_modal.absolute ? w.value : next.X + w.value;
-            break;
-        case 'Y':
-            next.Y = next_modal.absolute ? w.value : next.Y + w.value;
-            break;
-        case 'Z':
-            next.Z = next_modal.absolute ? w.value : next.Z + w.value;
-            break;
-        case 'A':
-            next.A = next_modal.absolute ? w.value : next.A + w.value;
-            break;
-        case 'C':
-            next.C = next_modal.absolute ? w.value : next.C + w.value;
-            break;
-        case 'F':
-            if (w.value < 0) { error = "Negative feed is invalid"; return false; }
-            next_feed = w.value;
-            break;
-        case 'S':
-            if (w.value < 0) { error = "Negative spindle speed is invalid"; return false; }
-            next_rpm = w.value;
-            break;
-        case 'T':
-            next_tool = code(w);
-            break;
-        case 'D':
-            next_d = code(w);
-            break;
-        case 'M':
-            switch (code(w)) {
-            case 3: next_modal.spindle_direction = 1; break;
-            case 4: next_modal.spindle_direction = -1; break;
-            case 5: next_modal.spindle_direction = 0; next_rpm = 0; break;
-            case 8: next_modal.coolant = true; break;
-            case 9: next_modal.coolant = false; break;
-            default: break;
-            }
-            break;
-        default:
-            break;
-        }
-    }
-
-    if (!Kinematics().validate(next, error))
-        return false;
-
-    state_ = next;
-    modal_ = next_modal;
-    feed_ = next_feed;
-    rpm_ = next_rpm;
-    tool_ = next_tool;
-    d_ = next_d;
-    return true;
-}
-
-void Runtime::reset() {
-    state_ = {};
-    modal_ = {};
-    feed_ = rpm_ = 0;
-    tool_ = d_ = 0;
-}
-
+void Runtime::reset(){state_={};modal_={};feed_=rpm_=0;tool_=d_=0;last_motion_.clear();}
 }
