@@ -10,24 +10,26 @@
 #include <QGridLayout>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QTimer>
 MainWindow::MainWindow(QWidget* p):QMainWindow(p),operator_(runtime_){
  setWindowTitle("CNC5AxisSim - Siemens 840D / 5-Axis");
  resize(1200,760);
  auto* root=new QWidget(this);auto* main=new QHBoxLayout(root);
  program_=new QPlainTextEdit; program_->setPlaceholderText("Paste Siemens 840D MPF program here...");
  auto* center=new QVBoxLayout; center->addWidget(new Viewport3D(&runtime_),2); center->addWidget(program_,1); main->addLayout(center,3);
+ auto* timer=new QTimer(this); timer->setInterval(50); connect(timer,&QTimer::timeout,this,[this,timer]{ if(operator_.executor().state()==cnc::ExecutionState::Running){ if(!operator_.step()){timer->stop();} refresh(); } else timer->stop(); });
  auto* right=new QVBoxLayout; auto* pos=new QGridLayout;
  x_=new QLabel;y_=new QLabel;z_=new QLabel;a_=new QLabel;c_=new QLabel;feed_=new QLabel;rpm_=new QLabel;status_=new QLabel;
  const char* names[]={"X","Y","Z","A","C","F","S"}; QLabel* vals[]={x_,y_,z_,a_,c_,feed_,rpm_};
  for(int i=0;i<7;++i){pos->addWidget(new QLabel(names[i]),i,0);pos->addWidget(vals[i],i,1);}
  right->addLayout(pos); right->addWidget(status_);
  auto add=[&](const char* t,auto fn){auto* b=new QPushButton(t);connect(b,&QPushButton::clicked,this,fn);right->addWidget(b);};
- add("START",[this]{if(operator_.start())refresh();else refresh();});
- add("STEP",[this]{operator_.step();refresh();});
+ add("START",[this,timer]{ if(operator_.start()) { timer->start(); } refresh(); });
+ add("STEP",[this]{operator_.step();refresh();centralWidget()->update();});
  add("HOLD",[this]{operator_.hold();refresh();});
  add("RESUME",[this]{operator_.resume();refresh();});
- add("STOP",[this]{operator_.stop();refresh();});
- add("RESET",[this]{operator_.reset();refresh();});
+ add("STOP",[this,timer]{timer->stop();operator_.stop();refresh();});
+ add("RESET",[this,timer]{timer->stop();operator_.reset();refresh();});
  auto* load=new QPushButton("LOAD MPF");connect(load,&QPushButton::clicked,this,[this]{QString fn=QFileDialog::getOpenFileName(this,"Open MPF",{}, "MPF (*.MPF *.mpf);;All Files (*)");if(fn.isEmpty())return;cnc::ProgramLoader l;std::string e;if(!l.load_file(fn.toStdString(),e)){QMessageBox::critical(this,"MPF",QString::fromStdString(e));return;}operator_.load(l.blocks());program_->setPlainText(QString::fromStdString(l.lines().empty()?std::string():l.lines()[0].block.source)); refresh();});right->addWidget(load);
  alarms_=new QListWidget;right->addWidget(alarms_,1);main->addLayout(right,1);setCentralWidget(root);loadDemo();
 }
