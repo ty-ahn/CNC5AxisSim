@@ -14,7 +14,7 @@ class Stock {
 public:
  bool initialize(const StockDefinition& d);
  bool remove_tool_segment(const Vec3& p0,const Vec3& p1,double radius);
- bool sweep_tool_segment(const Vec3& p0,const Vec3& p1,const ToolGeometry& tool);
+ bool sweep_tool_segment(const Vec3& p0,const Vec3& p1,const ToolGeometry& tool);\n bool sweep_oriented_tool(const Vec3& tcp0,const Vec3& axis0,const Vec3& tcp1,const Vec3& axis1,const ToolGeometry& tool,int samples=24);
  bool intersects_segment(const Vec3& p0,const Vec3& p1,double radius,Vec3* hit=nullptr) const;
  const StockDefinition& definition()const{return def_;}
  size_t removed_count()const;
