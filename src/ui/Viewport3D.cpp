@@ -31,7 +31,7 @@ void Viewport3D::paintGL(){
    const int ny=std::max(1,int(std::ceil(sd.size_y/std::max(0.001,sd.resolution))));
    const int nz=std::max(1,int(std::ceil(sd.size_z/std::max(0.001,sd.resolution))));
    const double rx=sd.size_x/nx,ry=sd.size_y/ny,rz=sd.size_z/nz;
-   const size_t max_points=250000;
+   const size_t max_points=120000;
    size_t emitted=0;
    for(int z=0;z<nz && emitted<max_points;++z) for(int y=0;y<ny && emitted<max_points;++y) for(int x=0;x<nx && emitted<max_points;++x)
     if(!runtime_->stock().is_removed(x,y,z)){addv({sd.origin.x+(x+0.5)*rx,sd.origin.y+(y+0.5)*ry,sd.origin.z+(z+0.5)*rz},0.20f,0.65f,0.95f);++emitted;}
