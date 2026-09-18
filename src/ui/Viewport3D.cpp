@@ -7,6 +7,7 @@ void Viewport3D::initializeGL(){initializeOpenGLFunctions();glEnable(GL_DEPTH_TE
 void Viewport3D::resizeGL(int w,int h){glViewport(0,0,w,h);}
 void Viewport3D::paintGL(){
  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+ update();
  QPainter p(this);p.setPen(Qt::white);p.setFont(QFont("Consolas",11));
  p.drawText(18,28,"CNC5AxisSim  |  3D MACHINE VIEW");
  if(!runtime_){p.end();return;}
