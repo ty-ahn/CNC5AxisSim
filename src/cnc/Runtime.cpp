@@ -1,9 +1,11 @@
 #include "Runtime.h"
 #include <cmath>
+#include <algorithm>
+#include <cctype>
 namespace cnc{
 static int code(const Word&w){return static_cast<int>(std::llround(w.value));}
 bool Runtime::execute(const Block&b,std::string&e){
- auto next=state_;auto m=modal_;double f=feed_,s=rpm_;int t=tool_,d=d_;bool move=false;ArcDefinition arc{};
+ auto next=state_;auto m=modal_;\n std::string src=b.source; std::transform(src.begin(),src.end(),src.begin(),[](unsigned char c){return char(std::toupper(c));});\n if(src.find("TRAORI")!=std::string::npos) m.traori=true;\n if(src.find("TRAFOOF")!=std::string::npos) m.traori=false;double f=feed_,s=rpm_;int t=tool_,d=d_;bool move=false;ArcDefinition arc{};
  for(const auto&w:b.words)switch(w.letter){
  case'G':switch(code(w)){case 0:m.motion=MotionMode::Rapid;break;case 1:m.motion=MotionMode::Linear;break;case 2:m.motion=MotionMode::ArcCW;break;case 3:m.motion=MotionMode::ArcCCW;break;case 17:m.plane=17;break;case 18:m.plane=18;break;case 19:m.plane=19;break;case 54:m.work_offset=54;break;case 55:m.work_offset=55;break;case 90:m.absolute=true;break;case 91:m.absolute=false;break;case 94:m.feed_mode=94;break;case 95:m.feed_mode=95;break;default:break;}break;
  case'X':next.X=m.absolute?w.value:next.X+w.value;move=true;break;case'Y':next.Y=m.absolute?w.value:next.Y+w.value;move=true;break;case'Z':next.Z=m.absolute?w.value:next.Z+w.value;move=true;break;case'A':next.A=m.absolute?w.value:next.A+w.value;move=true;break;case'C':next.C=m.absolute?w.value:next.C+w.value;move=true;break;
