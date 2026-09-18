@@ -20,5 +20,7 @@ public:
  CollisionEvent check_holder_stock(const Vec3& holder_start,const Vec3& holder_end,double radius) const;
  size_t cell_count()const{return cells_.size();}
  bool is_removed(int x,int y,int z)const;
+ double remaining_volume() const;
+ std::vector<Vec3> removed_centers() const;
 };
 }
