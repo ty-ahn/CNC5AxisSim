@@ -22,7 +22,7 @@ public:
 public:
  bool validate(const MachineState&,std::string&) const;
  static double unwrap(double previous,double target);
- static Vec3 axis_from_ac(double A,double C);
+ static Vec3 axis_from_ac(double A,double C);\n Vec3 configured_axis_from_ac(double A,double C) const;
  static Vec3 tcp_from_machine(const MachineState&,double tool_length);
  bool inverse_kinematics(const ToolPose&,const MachineState&,double tool_length,IKResult&,std::string&);
  bool orientation_move(const ToolPose&,const MachineState&,double,std::vector<MachineState>&,std::string&,int samples=20);
