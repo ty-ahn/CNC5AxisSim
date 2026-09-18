@@ -6,6 +6,14 @@
 #include <QPolygonF>
 void Viewport3D::initializeGL(){initializeOpenGLFunctions();glEnable(GL_DEPTH_TEST);glClearColor(0.06f,0.07f,0.09f,1.0f);}
 void Viewport3D::resizeGL(int w,int h){glViewport(0,0,w,h);}
+include "Viewport3D.h"
+#include <QPainter>
+#include <QFont>
+#include <cmath>
+#include <QMatrix4x4>
+#include <QPolygonF>
+void Viewport3D::initializeGL(){initializeOpenGLFunctions();glEnable(GL_DEPTH_TEST);glClearColor(0.06f,0.07f,0.09f,1.0f);}
+void Viewport3D::resizeGL(int w,int h){glViewport(0,0,w,h);}
 void Viewport3D::paintGL(){
  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
  
