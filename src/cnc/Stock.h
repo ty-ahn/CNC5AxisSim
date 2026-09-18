@@ -15,6 +15,7 @@ public:
  bool initialize(const StockDefinition& d);
  bool remove_tool_segment(const Vec3& p0,const Vec3& p1,double radius);
  bool sweep_tool_segment(const Vec3& p0,const Vec3& p1,const ToolGeometry& tool);
+ bool intersects_segment(const Vec3& p0,const Vec3& p1,double radius,Vec3* hit=nullptr) const;
  const StockDefinition& definition()const{return def_;}
  size_t removed_count()const;
  CollisionEvent check_holder_stock(const Vec3& holder_start,const Vec3& holder_end,double radius) const;
