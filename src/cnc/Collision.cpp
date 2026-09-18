@@ -10,6 +10,12 @@ bool CollisionManager::segment_aabb(const Vec3&p0,const Vec3&p1,const Aabb&b,dou
  double t=std::clamp(t0,0.0,1.0);hit={p0.x+d.x*t,p0.y+d.y*t,p0.z+d.z*t};
  double dx=std::min(hit.x-b.min.x,b.max.x-hit.x),dy=std::min(hit.y-b.min.y,b.max.y-hit.y),dz=std::min(hit.z-b.min.z,b.max.z-hit.z);
  penetration=std::max(0.0,std::min({dx,dy,dz}));return true;
+CollisionEvent CollisionManager::check_holder_mesh(const Vec3&p0,const Vec3&p1,double radius)const{
+ CollisionEvent best{CollisionType::HolderMachine,{},0,false}; if(radius<0)return best;
+ for(const auto&body:machine_bodies_) if(body.bvh&&body.mesh&&!body.bvh->empty()){Vec3 hit{};if(body.bvh->segment_hit(p0,p1,radius,&hit)){best={CollisionType::HolderMachine,hit,radius,true};return best;}}
+ return best;
+}
+
 }
 CollisionEvent CollisionManager::check_holder_machine(const Vec3&p0,const Vec3&p1,double radius)const{
  CollisionEvent best{CollisionType::HolderMachine,{},0,false};if(radius<0)return best;
