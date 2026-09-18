@@ -27,5 +27,6 @@ public:
  const MachineKinematicConfig& kinematics() const { return k_; }
  const std::string& name() const { return name_; }
  const std::vector<MachineNode>& nodes() const { return nodes_; }
+ bool validate_tree(std::string& error) const;
 };
 }
