@@ -2,6 +2,7 @@
 #include <QPainter>
 #include <QFont>
 #include <cmath>
+#include <QMatrix4x4>
 void Viewport3D::initializeGL(){initializeOpenGLFunctions();glEnable(GL_DEPTH_TEST);glClearColor(0.06f,0.07f,0.09f,1.0f);}
 void Viewport3D::resizeGL(int w,int h){glViewport(0,0,w,h);}
 void Viewport3D::paintGL(){
@@ -14,6 +15,12 @@ void Viewport3D::paintGL(){
    .arg(s.X,0,'f',2).arg(s.Y,0,'f',2).arg(s.Z,0,'f',2).arg(s.A,0,'f',2).arg(s.C,0,'f',2));
  const int cx=width()/2, cy=height()/2;
  p.setPen(QPen(Qt::gray,2));p.drawLine(cx-260,cy,cx+260,cy);p.drawLine(cx,cy-180,cx,cy+180);
+ p.setPen(QPen(Qt::darkGray,1));
+ QRectF stock(cx-220,cy-120,440,240); p.drawRect(stock);
+ auto project=[&](double X,double Y,double Z){double sx=X*1.5; double sy=-Y*1.5-Z*0.55; return QPointF(cx+sx,cy+sy);};
+ auto tcp=project(s.X,s.Y,s.Z);
+ p.setPen(QPen(Qt::yellow,4)); p.drawLine(tcp,project(s.X,s.Y,s.Z+80));
+ p.drawEllipse(tcp-QPointF(5,5),QPointF(5,5)); p.drawText(tcp+QPointF(10,-10),"TOOL/TCP");
  p.setPen(QPen(Qt::green,4));p.drawEllipse(cx-5,cy-5,10,10);
  p.setPen(Qt::white);p.drawText(cx+12,cy-8,"TCP");
  p.end();
