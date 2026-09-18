@@ -12,3 +12,4 @@ public:
  const std::vector<Block>& main_program() const{return main_;}
  const std::unordered_map<int,std::vector<Block>>& subprograms() const{return spf_;}
 };
+}
