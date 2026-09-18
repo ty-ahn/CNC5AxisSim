@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "Viewport3D.h"
 #include "cnc/ProgramLoader.h"
 #include <QPlainTextEdit>
 #include <QLabel>
@@ -14,7 +15,7 @@ MainWindow::MainWindow(QWidget* p):QMainWindow(p),operator_(runtime_){
  resize(1200,760);
  auto* root=new QWidget(this);auto* main=new QHBoxLayout(root);
  program_=new QPlainTextEdit; program_->setPlaceholderText("Paste Siemens 840D MPF program here...");
- main->addWidget(program_,2);
+ auto* center=new QVBoxLayout; center->addWidget(new Viewport3D(&runtime_),2); center->addWidget(program_,1); main->addLayout(center,3);
  auto* right=new QVBoxLayout; auto* pos=new QGridLayout;
  x_=new QLabel;y_=new QLabel;z_=new QLabel;a_=new QLabel;c_=new QLabel;feed_=new QLabel;rpm_=new QLabel;status_=new QLabel;
  const char* names[]={"X","Y","Z","A","C","F","S"}; QLabel* vals[]={x_,y_,z_,a_,c_,feed_,rpm_};
