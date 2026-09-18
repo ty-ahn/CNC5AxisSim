@@ -1,0 +1,14 @@
+#include "Bvh.h"
+#include <algorithm>
+#include <cmath>
+namespace cnc {
+static Vec3 subb(Vec3 a,Vec3 b){return {a.x-b.x,a.y-b.y,a.z-b.z};}
+static double dotb(Vec3 a,Vec3 b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+static MeshAabb grow(MeshAabb b,double r){b.min.x-=r;b.min.y-=r;b.min.z-=r;b.max.x+=r;b.max.y+=r;b.max.z+=r;return b;}
+MeshAabb Bvh::tri_bounds(const Triangle&t){return {{std::min({t.a.x,t.b.x,t.c.x}),std::min({t.a.y,t.b.y,t.c.y}),std::min({t.a.z,t.b.z,t.c.z})},{std::max({t.a.x,t.b.x,t.c.x}),std::max({t.a.y,t.b.y,t.c.y}),std::max({t.a.z,t.b.z,t.c.z})}};}
+MeshAabb Bvh::merge(const MeshAabb&a,const MeshAabb&b){return {{std::min(a.min.x,b.min.x),std::min(a.min.y,b.min.y),std::min(a.min.z,b.min.z)},{std::max(a.max.x,b.max.x),std::max(a.max.y,b.max.y),std::max(a.max.z,b.max.z)}};}
+int Bvh::build(std::uint32_t begin,std::uint32_t end){BvhNode n{};n.begin=begin;n.count=end-begin;for(auto i=begin;i<end;++i)n.bounds= i==begin?tri_bounds((*triangles_)[indices_[i]]):merge(n.bounds,tri_bounds((*triangles_)[indices_[i]]));int id=(int)nodes_.size();nodes_.push_back(n);if(end-begin<=8)return id;double ex=n.bounds.max.x-n.bounds.min.x,ey=n.bounds.max.y-n.bounds.min.y,ez=n.bounds.max.z-n.bounds.min.z;int axis=ex>ey?(ex>ez?0:2):(ey>ez?1:2);auto mid=begin+(end-begin)/2;std::nth_element(indices_.begin()+begin,indices_.begin()+mid,indices_.begin()+end,[&](auto a,auto b){auto ca=(*triangles_)[a];auto cb=(*triangles_)[b];double ax=(ca.a.x+ca.b.x+ca.c.x)/3, bx=(cb.a.x+cb.b.x+cb.c.x)/3, ay=(ca.a.y+ca.b.y+ca.c.y)/3,by=(cb.a.y+cb.b.y+cb.c.y)/3,az=(ca.a.z+ca.b.z+ca.c.z)/3,bz=(cb.a.z+cb.b.z+cb.c.z)/3;return axis==0?ax<bx:axis==1?ay<by:az<bz;});int l=build(begin,mid),r=build(mid,end);nodes_[id].left=l;nodes_[id].right=r;nodes_[id].count=0;return id;}
+void Bvh::build(const std::vector<Triangle>&t){triangles_=&t;nodes_.clear();indices_.resize(t.size());for(std::uint32_t i=0;i<indices_.size();++i)indices_[i]=i;if(!t.empty())build(0,(std::uint32_t)t.size());}
+static bool slab(Vec3 p,Vec3 d,const MeshAabb&b){double t0=0,t1=1;auto s=[&](double x,double q,double mn,double mx){if(std::abs(q)<1e-12)return x>=mn&&x<=mx;double a=(mn-x)/q,z=(mx-x)/q;if(a>z)std::swap(a,z);t0=std::max(t0,a);t1=std::min(t1,z);return t0<=t1;};return s(p.x,d.x,b.min.x,b.max.x)&&s(p.y,d.y,b.min.y,b.max.y)&&s(p.z,d.z,b.min.z,b.max.z);}
+bool Bvh::segment_hit(const Vec3&p0,const Vec3&p1,double radius,Vec3*hit)const{if(nodes_.empty()||!triangles_)return false;Vec3 d=subb(p1,p0);std::vector<int> stack{0};while(!stack.empty()){int id=stack.back();stack.pop_back();auto b=grow(nodes_[id].bounds,radius);if(!slab(p0,d,b))continue;auto&n=nodes_[id];if(n.leaf()){for(std::uint32_t k=0;k<n.count;++k){auto&t=(*triangles_)[indices_[n.begin+k]];MeshAabb tb=grow(tri_bounds(t),radius);if(slab(p0,d,tb)){if(hit)*hit=p0;return true;}}}else{stack.push_back(n.left);stack.push_back(n.right);}}return false;}
+}
