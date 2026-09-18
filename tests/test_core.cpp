@@ -19,7 +19,7 @@ int main(){
  run("N80 TRAORI G90 G1 X10 Y0 Z0 I0 J0 K-1 F500"); assert(r.modal().traori); assert(std::abs(r.state().A)<1e-9);
  run("N85 TRAFOOF"); assert(!r.modal().traori);
  run("N90 G55 M5"); assert(r.modal().work_offset==55&&r.rpm()==0);
- assert(std::abs(cnc::Kinematics::unwrap(359,1)-361)<1e-9);
+ assert(std::abs(cnc::Kinematics::unwrap(359,1)-361)<1e-9); cnc::Kinematics kk({{-100,100,false},{-100,100,false},{-100,100,false},{-90,90,false},{-180,180,true},10,20}); cnc::MachineState ks{0,0,0,30,40}; auto tcp=kk.tcp_from_machine(ks,50); cnc::ToolPose kp{tcp,cnc::Kinematics::axis_from_ac(30,40)}; cnc::IKResult ki; assert(kk.inverse_kinematics(kp,ks,50,ki,e)); assert(std::abs(ki.position_error)<1e-7);
  cnc::Stock stock; assert(stock.initialize({{0,0,0},20,20,20,2})); auto before=stock.removed_count(); assert(stock.sweep_tool_segment({10,10,20},{10,10,0},{cnc::ToolShape::Ball,2.1,0})); assert(stock.removed_count()>before);
  cnc::Runtime held; held.hold(); assert(held.feed_hold()); held.clear_alarm(); assert(!held.feed_hold());
  cnc::ProgramLoader loader; assert(loader.load_text("N10 G0 X0\n\nN20 G1 X10 F500\n",e)); assert(loader.lines().size()==2&&loader.lines()[1].line_index==3);
