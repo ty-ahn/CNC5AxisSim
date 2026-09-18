@@ -1,4 +1,5 @@
 #include "Runtime.h"
+#include "MachineJson.h"
 #include <fstream>
 #include <algorithm>
 #include <cmath>
