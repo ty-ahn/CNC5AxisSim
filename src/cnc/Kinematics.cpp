@@ -22,8 +22,10 @@ Vec3 Kinematics::axis_from_ac(double A,double C){double a=A*PI/180.0,c=C*PI/180.
 Vec3 Kinematics::configured_axis_from_ac(double A,double C) const{
  Vec3 aa=normalize(config_.a_axis),cc=normalize(config_.c_axis);
  if(norm(aa)<1e-12||norm(cc)<1e-12)return axis_from_ac(A,C);
+ // C is mounted on the A head, so its axis is rotated by A before C motion.
+ Vec3 cAxisWorld=normalize(rotate(cc,aa,A));
  Vec3 v=rotate({0,0,-1},aa,A);
- return normalize(rotate(v,cc,C));
+ return normalize(rotate(v,cAxisWorld,C));
 }
 Vec3 Kinematics::tcp_from_machine(const MachineState&s,double L){
  Vec3 aa=normalize(config_.a_axis),cc=normalize(config_.c_axis);
@@ -31,7 +33,9 @@ Vec3 Kinematics::tcp_from_machine(const MachineState&s,double L){
  // Head-head chain: A rotates the C-axis pivot and C rotates the tool vector.
  Vec3 cLocal=sub(config_.pivot_c,config_.pivot_a);
  Vec3 cOffset=rotate(cLocal,aa,s.A);
+ Vec3 cAxisWorld=normalize(rotate(cc,aa,s.A));
  Vec3 toolLocal=mul({0,0,-1},L+config_.c_to_tool);
- Vec3 toolOffset=rotate(rotate(toolLocal,aa,s.A),cc,s.C);
+ Vec3 toolAfterA=rotate(toolLocal,aa,s.A);
+ Vec3 toolOffset=rotate(toolAfterA,cAxisWorld,s.C);
  return add({s.X,s.Y,s.Z},add(cOffset,toolOffset));
 }
