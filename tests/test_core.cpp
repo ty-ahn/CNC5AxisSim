@@ -11,3 +11,5 @@ run("N80 TRAORI G90 G1 X10 Y0 Z0 I0 J0 K-1 F500"); assert(r.modal().traori); ass
 TEST_CASE("Voxel stock removes material along tool sweep"){ cnc::Stock s; REQUIRE(s.initialize({{0,0,0},20,20,20,2})); auto before=s.removed_count(); REQUIRE(s.sweep_tool_segment({10,10,20},{10,10,0},{cnc::ToolShape::Ball,2.1,0})); REQUIRE(s.removed_count()>before); }
 
 TEST_CASE("Runtime feed hold and resume"){ cnc::Runtime r; REQUIRE(!r.feed_hold()); r.feed_hold(); REQUIRE(r.feed_hold()); r.clear_alarm(); REQUIRE(!r.feed_hold()); }
+
+TEST_CASE("MPF program loader preserves source line mapping"){ cnc::ProgramLoader l; std::string e; REQUIRE(l.load_text("N10 G0 X0\\nN20 G1 X10 F500\\n",e)); REQUIRE(l.lines().size()==2); REQUIRE(l.lines()[1].line_index==2); REQUIRE(l.lines()[1].block.number==20); }
