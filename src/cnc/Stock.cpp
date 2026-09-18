@@ -18,6 +18,12 @@ bool Stock::remove_tool_segment(const Vec3& p0,const Vec3& p1,double radius){
   if(dx*dx+dy*dy+dz*dz<=r2){cells_[index(x,y,z)].removed=true;changed=true;}
  } return changed;
 }
+bool Stock::sweep_tool_segment(const Vec3& p0,const Vec3& p1,const ToolGeometry& tool){
+ double r=tool.radius;
+ if(tool.shape==ToolShape::BullNose && tool.corner_radius>0) r=std::max(r,tool.corner_radius);
+ if(tool.shape==ToolShape::Ball) return remove_tool_segment(p0,p1,r);
+ return remove_tool_segment(p0,p1,r);
+}
 size_t Stock::removed_count()const{size_t n=0;for(const auto&c:cells_)if(c.removed)++n;return n;}
 bool Stock::is_removed(int x,int y,int z)const{return x>=0&&x<nx_&&y>=0&&y<ny_&&z>=0&&z<nz_&&cells_[index(x,y,z)].removed;}
 }
