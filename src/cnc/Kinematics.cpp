@@ -1,5 +1,6 @@
 #include "Kinematics.h"
 #include <cmath>
+#include <algorithm>
 #include <limits>
 namespace cnc {
 double Kinematics::unwrap(double p,double t){while(t-p>180)t-=360;while(t-p<-180)t+=360;return t;}
