@@ -84,6 +84,32 @@ bool MachineConfig::load_json(const std::string& path,std::string& e){
  for(int i=0;i<5;++i){MachineNode n;n.name=keys[i];n.type=i<3?MachineNodeType::LinearAxis:MachineNodeType::RotaryAxis;n.min=i==0?k_.X.minimum:i==1?k_.Y.minimum:i==2?k_.Z.minimum:i==3?k_.A.minimum:k_.C.minimum;n.max=i==0?k_.X.maximum:i==1?k_.Y.maximum:i==2?k_.Z.maximum:i==3?k_.A.maximum:k_.C.maximum;n.wrap=i==4;n.parent=i==0?"":i==1?"X":i==2?"Y":i==3?"Z":"A";n.axis=i==3?k_.a_axis:k_.c_axis;n.pivot=i==3?k_.pivot_a:k_.pivot_c;nodes_.push_back(n);}
  return validate_tree(e);
 }
+bool MachineConfig::validate_tree(std::string& e) const{
+ std::unordered_map<std::string,size_t> by_name;
+ for(size_t i=0;i<nodes_.size();++i){
+  const auto& n=nodes_[i];
+  if(n.name.empty()){e="machine node name is empty";return false;}
+  if(!by_name.emplace(n.name,i).second){e="duplicate machine node: "+n.name;return false;}
+  if(!std::isfinite(n.min)||!std::isfinite(n.max)||n.min>=n.max){e="invalid machine node limit: "+n.name;return false;}
+  const double an=std::sqrt(n.axis.x*n.axis.x+n.axis.y*n.axis.y+n.axis.z*n.axis.z);
+  if(n.type==MachineNodeType::LinearAxis||n.type==MachineNodeType::RotaryAxis){
+   if(!std::isfinite(an)||an<1e-12){e="invalid machine node axis: "+n.name;return false;}
+  }
+ }
+ for(const auto& n:nodes_){
+  if(n.parent.empty()) continue;
+  if(!by_name.count(n.parent)){e="missing parent for machine node: "+n.name;return false;}
+  if(n.parent==n.name){e="machine node cannot parent itself: "+n.name;return false;}
+  std::unordered_set<std::string> seen;
+  std::string cur=n.parent;
+  while(!cur.empty()){
+   if(!seen.insert(cur).second){e="machine node parent cycle at: "+n.name;return false;}
+   auto it=by_name.find(cur); if(it==by_name.end()) break;
+   cur=nodes_[it->second].parent;
+  }
+ }
+ return true;
+}
 bool MachineConfig::save_json(const std::string& path,std::string&e)const{
  std::ofstream f(path);if(!f){e="cannot write machine config";return false;}
  f<<"{\n  \"machine\": {\n    \"name\": \""<<json_escape(name_)<<"\",\n    \"nodes\": [\n";
