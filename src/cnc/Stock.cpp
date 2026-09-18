@@ -1,6 +1,6 @@
 #include "Stock.h"
 #include <algorithm>
-#include <cmath>
+#include <cmath>\n#include <limits>
 namespace cnc {
 static double dist2_segment(const Vec3& c,const Vec3& p0,const Vec3& p1){
  Vec3 v{p1.x-p0.x,p1.y-p0.y,p1.z-p0.z},w{c.x-p0.x,c.y-p0.y,c.z-p0.z};
@@ -51,4 +51,13 @@ size_t Stock::removed_count()const{size_t n=0;for(const auto&c:cells_)if(c.remov
 bool Stock::is_removed(int x,int y,int z)const{return x>=0&&x<nx_&&y>=0&&y<ny_&&z>=0&&z<nz_&&cells_[index(x,y,z)].removed;}
 double Stock::remaining_volume() const {return double(cells_.size()-removed_count())*def_.resolution*def_.resolution*def_.resolution;}
 std::vector<Vec3> Stock::removed_centers() const {std::vector<Vec3> out;out.reserve(removed_count());for(int z=0;z<nz_;++z)for(int y=0;y<ny_;++y)for(int x=0;x<nx_;++x)if(cells_[index(x,y,z)].removed)out.push_back({def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(y+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution});return out;}
+}\ndouble Stock::signed_distance(const Vec3& p) const {
+ if(cells_.empty()) return 0;
+ double best=std::numeric_limits<double>::infinity();
+ for(int z=0;z<nz_;++z)for(int y=0;y<ny_;++y)for(int x=0;x<nx_;++x) if(!cells_[index(x,y,z)].removed){
+  Vec3 c{def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(y+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution};
+  double dx=p.x-c.x,dy=p.y-c.y,dz=p.z-c.z;
+  best=std::min(best,std::sqrt(dx*dx+dy*dy+dz*dz));
+ }
+ return std::isfinite(best)?best:0;
 }
