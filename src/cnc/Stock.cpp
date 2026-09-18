@@ -27,6 +27,7 @@ bool Stock::sweep_tool_segment(const Vec3& p0,const Vec3& p1,const ToolGeometry&
  if(tool.shape==ToolShape::Ball) r=tool.radius;
  return remove_tool_segment(p0,p1,r);
 }
+bool Stock::intersects_segment(const Vec3& p0,const Vec3& p1,double radius,Vec3* hit) const{ if(cells_.empty()||radius<0)return false; double r2=radius*radius; Vec3 v{p1.x-p0.x,p1.y-p0.y,p1.z-p0.z}; double vv=v.x*v.x+v.y*v.y+v.z*v.z; for(int z=0;z<nz_;++z)for(int y=0;y<ny_;++y)for(int x=0;x<nx_;++x){ if(cells_[index(x,y,z)].removed)continue; Vec3 c{def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(y+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution}; Vec3 w{c.x-p0.x,c.y-p0.y,c.z-p0.z}; double t=vv>0?(w.x*v.x+w.y*v.y+w.z*v.z)/vv:0; t=std::clamp(t,0.0,1.0); Vec3 q{p0.x+t*v.x,p0.y+t*v.y,p0.z+t*v.z}; double dx=c.x-q.x,dy=c.y-q.y,dz=c.z-q.z; if(dx*dx+dy*dy+dz*dz<=r2){if(hit)*hit=c;return true;}} return false;}
 CollisionEvent Stock::check_holder_stock(const Vec3& p0,const Vec3& p1,double radius) const{
  CollisionEvent e{}; e.type=CollisionType::HolderStock;
  if(cells_.empty()) return e;
