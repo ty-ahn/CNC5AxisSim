@@ -21,6 +21,6 @@ std::optional<Block> Parser::parse(const std::string& line) {
         } catch(...) {}
         i=j;
     }
-    return b.words.empty()?std::nullopt:std::optional<Block>(b);
+    if(b.words.empty()){ std::string u=s; for(char& c:u)c=char(std::toupper((unsigned char)c)); if(u.find("RET")!=std::string::npos||u.find("CALL")!=std::string::npos||u.find("GOTOF")!=std::string::npos||u.find("GOTOB")!=std::string::npos||u.find("IF")!=std::string::npos||u.find("LBL")!=std::string::npos) return b; } return b.words.empty()?std::nullopt:std::optional<Block>(b);
 }
 }
