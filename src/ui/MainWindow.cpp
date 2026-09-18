@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget* p):QMainWindow(p),operator_(runtime_){
  x_=new QLabel;y_=new QLabel;z_=new QLabel;a_=new QLabel;c_=new QLabel;feed_=new QLabel;rpm_=new QLabel;status_=new QLabel;
  const char* names[]={"X","Y","Z","A","C","F","S"}; QLabel* vals[]={x_,y_,z_,a_,c_,feed_,rpm_};
  for(int i=0;i<7;++i){pos->addWidget(new QLabel(names[i]),i,0);pos->addWidget(vals[i],i,1);}
- right->addLayout(pos);
+ right->addLayout(pos); right->addWidget(status_);
  auto add=[&](const char* t,auto fn){auto* b=new QPushButton(t);connect(b,&QPushButton::clicked,this,fn);right->addWidget(b);};
  add("START",[this]{if(operator_.start())refresh();else refresh();});
  add("STEP",[this]{operator_.step();refresh();});
@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget* p):QMainWindow(p),operator_(runtime_){
  add("RESUME",[this]{operator_.resume();refresh();});
  add("STOP",[this]{operator_.stop();refresh();});
  add("RESET",[this]{operator_.reset();refresh();});
- auto* load=new QPushButton("LOAD MPF");connect(load,&QPushButton::clicked,this,[this]{QString fn=QFileDialog::getOpenFileName(this,"Open MPF",{}, "MPF (*.MPF *.mpf);;All Files (*)");if(fn.isEmpty())return;cnc::ProgramLoader l;std::string e;if(!l.load_file(fn.toStdString(),e)){QMessageBox::critical(this,"MPF",QString::fromStdString(e));return;}operator_.load(l.blocks());program_->setPlainText(QFileDialog().selectedFiles().isEmpty()?QString():QString());refresh();});right->addWidget(load);
+ auto* load=new QPushButton("LOAD MPF");connect(load,&QPushButton::clicked,this,[this]{QString fn=QFileDialog::getOpenFileName(this,"Open MPF",{}, "MPF (*.MPF *.mpf);;All Files (*)");if(fn.isEmpty())return;cnc::ProgramLoader l;std::string e;if(!l.load_file(fn.toStdString(),e)){QMessageBox::critical(this,"MPF",QString::fromStdString(e));return;}operator_.load(l.blocks());program_->setPlainText(QString::fromStdString(l.lines().empty()?std::string():l.lines()[0].block.source)); refresh();});right->addWidget(load);
  alarms_=new QListWidget;right->addWidget(alarms_,1);main->addLayout(right,1);setCentralWidget(root);loadDemo();
 }
 void MainWindow::loadDemo(){program_->setPlainText("N10 G90 G54 G0 X0 Y0 Z100\nN20 T1 D1 S8000 M3\nN30 G1 X100 Y50 Z20 A30 C45 F1000\nN40 G91 X5 C20\nN50 G90 G55 G0 X0 Y0 Z100\nN60 M5");cnc::ProgramLoader l;std::string e;l.load_text(program_->toPlainText().toStdString(),e);operator_.load(l.blocks());refresh();}
