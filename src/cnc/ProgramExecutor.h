@@ -6,9 +6,19 @@
 #include <unordered_map>
 #include <cstdlib>
 #include <cctype>
+#include <cstring>
+#include <cmath>
 namespace cnc {
 enum class ExecutionState { Idle, Running, Held, Stopped, Completed, Error };
 class ProgramExecutor {
+ static bool condition(const std::string& s,const VariableStore& v,double& out,std::string& err){
+  const char* ops[]={"==","!=","<=",">=",">","<"}; size_t at=std::string::npos; const char* op=nullptr;
+  for(auto x:ops){auto p=s.find(x);if(p!=std::string::npos){at=p;op=x;break;}}
+  if(!op){return Expression::evaluate(s,v,out,err);}
+  double a=0,b=0;if(!Expression::evaluate(s.substr(0,at),v,a,err)||!Expression::evaluate(s.substr(at+std::strlen(op)),v,b,err))return false;
+  if(std::strcmp(op,"==")==0)out=std::abs(a-b)<1e-12; else if(std::strcmp(op,"!=")==0)out=std::abs(a-b)>=1e-12; else if(std::strcmp(op,"<=")==0)out=a<=b; else if(std::strcmp(op,">=")==0)out=a>=b; else if(std::strcmp(op,">")==0)out=a>b; else out=a<b; return true;
+ }
+
  Runtime* runtime_{}; std::vector<Block> blocks_; std::vector<Block> main_blocks_; size_t index_{0}; ExecutionState state_{ExecutionState::Idle}; std::string error_; std::unordered_map<int,size_t> labels_; std::unordered_map<int,std::vector<Block>> subprograms_; struct Frame{int program{}; size_t return_index{};}; std::vector<Frame> stack_; size_t steps_{0}; size_t max_steps_{1000000}; int program_{0};
 public:
  explicit ProgramExecutor(Runtime& r):runtime_(&r){}
@@ -16,12 +26,13 @@ public:
  void add_subprogram(int number,const std::vector<Block>& b){subprograms_[number]=b;}
  void set_max_steps(size_t n){max_steps_=n;}
  bool start(){if(!runtime_||blocks_.empty())return false;if(state_==ExecutionState::Completed||state_==ExecutionState::Stopped)index_=0;state_=ExecutionState::Running;return step();}
- bool step(){if(++steps_>max_steps_){error_="execution step limit exceeded";state_=ExecutionState::Error;return false;} if(state_==ExecutionState::Held||state_==ExecutionState::Error||index_>=blocks_.size()){if(index_>=blocks_.size())state_=ExecutionState::Completed;return false;} if(!runtime_->execute(blocks_[index_],error_)){state_=runtime_->feed_hold()?ExecutionState::Held:ExecutionState::Error;return false;}
+ bool step(){if(++steps_>max_steps_){error_="execution step limit exceeded";state_=ExecutionState::Error;return false;} const auto& pre=blocks_[index_].source; std::string preu=pre; for(char& ch:preu)ch=char(std::toupper((unsigned char)ch));
+  size_t rp=preu.find('R'); if(rp!=std::string::npos){size_t eq=preu.find('=',rp); if(eq!=std::string::npos){size_t q=rp+1;while(q<preu.size()&&std::isdigit((unsigned char)preu[q]))++q;if(q>rp+1){int rn=std::atoi(preu.c_str()+rp+1);std::string rhs=pre.substr(eq+1);double rv=0;if(!Expression::evaluate(rhs,runtime_->variables(),rv,error_)){state_=ExecutionState::Error;return false;}runtime_->variables().set(rn,rv);}}} if(state_==ExecutionState::Held||state_==ExecutionState::Error||index_>=blocks_.size()){if(index_>=blocks_.size())state_=ExecutionState::Completed;return false;} if(!runtime_->execute(blocks_[index_],error_)){state_=runtime_->feed_hold()?ExecutionState::Held:ExecutionState::Error;return false;}
   const auto& executed=blocks_[index_].source; std::string exu=executed; for(char& ch:exu) ch=char(std::toupper((unsigned char)ch));
   if(exu.find(" RET")!=std::string::npos || exu.rfind("RET",0)==0){ if(stack_.empty()){error_="RET without CALL";state_=ExecutionState::Error;return false;} auto fr=stack_.back(); stack_.pop_back(); if(fr.program==0){program_=0; blocks_=main_blocks_;} else {program_=fr.program;} labels_.clear(); for(size_t i=0;i<blocks_.size();++i) if(blocks_[i].number>=0) labels_[blocks_[i].number]=i; index_=fr.return_index; return true; }
   auto cp=exu.find("CALL"); if(cp!=std::string::npos){ size_t p=cp+4; while(p<executed.size()&&std::isspace((unsigned char)executed[p]))++p; if(p<executed.size()&&executed[p]=='P')++p; int pn=std::atoi(executed.c_str()+p); auto si=subprograms_.find(pn); if(si==subprograms_.end()){error_="subprogram not found";state_=ExecutionState::Error;return false;} stack_.push_back({program_,index_+1}); blocks_=si->second; program_=pn; index_=0; labels_.clear(); for(size_t i=0;i<blocks_.size();++i) if(blocks_[i].number>=0) labels_[blocks_[i].number]=i; return true; }
   const auto& src=blocks_[index_].source; std::string upper=src; for(char& ch:upper) ch=char(std::toupper((unsigned char)ch));
-  auto ifpos=upper.find("IF"); if(ifpos!=std::string::npos){ auto gp=upper.find("GOTOF",ifpos); if(gp==std::string::npos) gp=upper.find("GOTOB",ifpos); if(gp!=std::string::npos){ std::string cond=src.substr(ifpos+2,gp-ifpos-2); double cv=0; if(!Expression::evaluate(cond,runtime_->variables(),cv,error_)){state_=ExecutionState::Error;return false;} if(cv==0){++index_;return true;} size_t p=gp+5; while(p<src.size()&&std::isspace((unsigned char)src[p]))++p; int n=std::atoi(src.c_str()+p); auto it=labels_.find(n); if(it==labels_.end()){error_="label not found";state_=ExecutionState::Error;return false;} index_=it->second; return true; }}
+  auto ifpos=upper.find("IF"); if(ifpos!=std::string::npos){ auto gp=upper.find("GOTOF",ifpos); if(gp==std::string::npos) gp=upper.find("GOTOB",ifpos); if(gp!=std::string::npos){ std::string cond=src.substr(ifpos+2,gp-ifpos-2); double cv=0; if(!condition(cond,runtime_->variables(),cv,error_)){state_=ExecutionState::Error;return false;} if(cv==0){++index_;return true;} size_t p=gp+5; while(p<src.size()&&std::isspace((unsigned char)src[p]))++p; int n=std::atoi(src.c_str()+p); auto it=labels_.find(n); if(it==labels_.end()){error_="label not found";state_=ExecutionState::Error;return false;} index_=it->second; return true; }}
   auto pos=upper.find("GOTOF"); if(pos==std::string::npos) pos=upper.find("GOTOB");
   if(pos!=std::string::npos){ size_t p=pos+5; while(p<src.size()&&src[p]==' ')++p; int n=std::atoi(src.c_str()+p); auto it=labels_.find(n); if(it==labels_.end()){error_="label not found";state_=ExecutionState::Error;return false;} index_=it->second; return true; } ++index_;if(index_>=blocks_.size())state_=ExecutionState::Completed;return true;}
  void hold(){runtime_->hold();state_=ExecutionState::Held;}
