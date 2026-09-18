@@ -40,3 +40,6 @@ CollisionEvent Stock::check_holder_stock(const Vec3& p0,const Vec3& p1,double ra
 size_t Stock::removed_count()const{size_t n=0;for(const auto&c:cells_)if(c.removed)++n;return n;}
 bool Stock::is_removed(int x,int y,int z)const{return x>=0&&x<nx_&&y>=0&&y<ny_&&z>=0&&z<nz_&&cells_[index(x,y,z)].removed;}
 }
+double Stock::remaining_volume() const { size_t total=cells_.size(),removed=removed_count(); return double(total-removed)*def_.resolution*def_.resolution*def_.resolution; }
+std::vector<Vec3> Stock::removed_centers() const { std::vector<Vec3> out; out.reserve(removed_count()); for(int z=0;z<nz_;++z)for(int y=0;y<ny_;++y)for(int x=0;x<nx_;++x) if(cells_[index(x,y,z)].removed) out.push_back({def_.origin.x+(x+.5)*def_.resolution,def_.origin.y+(y+.5)*def_.resolution,def_.origin.z+(z+.5)*def_.resolution}); return out; }
+}
