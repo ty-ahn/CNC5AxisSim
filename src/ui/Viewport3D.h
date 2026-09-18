@@ -4,6 +4,7 @@
 #include <vector>
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <QOpenGLShaderProgram>
 #include "cnc/Runtime.h"
 class Viewport3D final : public QOpenGLWidget, protected QOpenGLFunctions_4_5_Core {
  cnc::Runtime* runtime_{};
