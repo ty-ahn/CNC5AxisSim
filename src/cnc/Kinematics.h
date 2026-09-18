@@ -1,10 +1,16 @@
 #pragma once
 #include <string>
 namespace cnc {
+struct Vec3 { double x{},y{},z{}; };
 struct MachineState { double X{},Y{},Z{},A{},C{}; };
+struct ToolPose { Vec3 tcp{}; Vec3 tool_axis{0,0,-1}; };
+struct IKResult { MachineState state{}; double position_error{},orientation_error{},cost{}; bool valid{}; };
 class Kinematics {
 public:
-    bool validate(const MachineState&, std::string&) const;
-    static double unwrap(double previous,double target);
+ bool validate(const MachineState&,std::string&) const;
+ static double unwrap(double previous,double target);
+ static Vec3 axis_from_ac(double A,double C);
+ static Vec3 tcp_from_machine(const MachineState&,double tool_length);
+ static bool inverse_kinematics(const ToolPose&,const MachineState&,double tool_length,IKResult&,std::string&);
 };
 }
