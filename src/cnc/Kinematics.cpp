@@ -45,15 +45,24 @@ bool Kinematics::validate(const MachineState&s,std::string&e)const{
 }
 bool Kinematics::inverse_kinematics(const ToolPose&p,const MachineState&seed,double L,IKResult&o,std::string&e){
  Vec3 d=normalize(p.tool_axis); if(norm(d)<1e-12){e="zero tool axis";return false;}
- double A=std::acos(std::clamp(-d.z,-1.0,1.0))*180.0/PI;
- double C=std::atan2(d.y,d.x)*180.0/PI; C=unwrap(seed.C,C);
- MachineState q=seed; q.A=A; q.C=C;
- Vec3 zero=tcp_from_machine({0,0,0,A,C},L);
+ auto orient_error=[&](double A,double C){Vec3 q=configured_axis_from_ac(A,C);return norm(sub(q,d));};
+ double bestA=seed.A,bestC=seed.C,bestErr=orient_error(bestA,bestC);
+ if(bestErr>1e-9){
+  const int amin=(int)std::ceil(config_.A.minimum),amax=(int)std::floor(config_.A.maximum);
+  const int cmin=(int)std::ceil(config_.C.minimum),cmax=(int)std::floor(config_.C.maximum);
+  for(int A=amin;A<=amax;++A){
+   for(int C=cmin;C<=cmax;++C){
+    double cc=config_.C.wrap?unwrap(seed.C,(double)C):(double)C;
+    if(!config_.C.wrap && (cc<config_.C.minimum||cc>config_.C.maximum))continue;
+    double er=orient_error((double)A,cc); if(er<bestErr){bestErr=er;bestA=A;bestC=cc;}
+   }
+  }
+ }
+ MachineState q{0,0,0,bestA,bestC}; Vec3 zero=tcp_from_machine(q,L);
  q.X=p.tcp.x-zero.x; q.Y=p.tcp.y-zero.y; q.Z=p.tcp.z-zero.z;
  if(!validate(q,e))return false;
- Vec3 fk=tcp_from_machine(q,L), qa=configured_axis_from_ac(q.A,q.C);
- double pe=std::sqrt((fk.x-p.tcp.x)*(fk.x-p.tcp.x)+(fk.y-p.tcp.y)*(fk.y-p.tcp.y)+(fk.z-p.tcp.z)*(fk.z-p.tcp.z));
- double oe=std::sqrt((qa.x-d.x)*(qa.x-d.x)+(qa.y-d.y)*(qa.y-d.y)+(qa.z-d.z)*(qa.z-d.z));
+ Vec3 fk=tcp_from_machine(q,L),qa=configured_axis_from_ac(q.A,q.C);
+ double pe=norm(sub(fk,p.tcp)),oe=norm(sub(qa,d));
  o={q,pe,oe,std::abs(q.A-seed.A)+std::abs(q.C-seed.C),pe<1e-7&&oe<1e-7};
  if(!o.valid){e="IK solution exceeds tolerance";return false;} return true;
 }
