@@ -4,7 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <QMatrix4x4>
-namespace { QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pitch,float zoom){constexpr double pi=3.14159265358979323846;double yr=yaw*pi/180.0,pr=pitch*pi/180.0;double x=X*std::cos(yr)-Y*std::sin(yr),y=X*std::sin(yr)+Y*std::cos(yr),sy=y*std::cos(pr)-Z*std::sin(pr);return {cx+x*1.5*zoom,cy-sy*1.5*zoom};} }
+namespace { cnc::Vec3 rv(cnc::Vec3 v, cnc::Vec3 axis, double deg){constexpr double pi=3.14159265358979323846;double n=std::sqrt(axis.x*axis.x+axis.y*axis.y+axis.z*axis.z);if(n<1e-12)return v;axis={axis.x/n,axis.y/n,axis.z/n};double r=deg*pi/180.0,co=std::cos(r),si=std::sin(r);cnc::Vec3 cr{axis.y*v.z-axis.z*v.y,axis.z*v.x-axis.x*v.z,axis.x*v.y-axis.y*v.x};double d=axis.x*v.x+axis.y*v.y+axis.z*v.z;return {v.x*co+cr.x*si+axis.x*d*(1-co),v.y*co+cr.y*si+axis.y*d*(1-co),v.z*co+cr.z*si+axis.z*d*(1-co)};} cnc::Vec3 transformNode(cnc::Vec3 p,const cnc::MachineNode& n,const cnc::MachineState& s,const cnc::MachineKinematicConfig& k){if(n.parent=="X")p.x+=s.X;else if(n.parent=="Y")p.y+=s.Y;else if(n.parent=="Z")p.z+=s.Z;else if(n.parent=="A"){p.x-=k.pivot_a.x;p.y-=k.pivot_a.y;p.z-=k.pivot_a.z;p=rv(p,k.a_axis,s.A);p.x+=k.pivot_a.x;p.y+=k.pivot_a.y;p.z+=k.pivot_a.z;}else if(n.parent=="C"){p.x-=k.pivot_c.x;p.y-=k.pivot_c.y;p.z-=k.pivot_c.z;p=rv(p,k.c_axis,s.C);p.x+=k.pivot_c.x;p.y+=k.pivot_c.y;p.z+=k.pivot_c.z;}return p;}  QPointF projectPoint(double X,double Y,double Z,int cx,int cy,float yaw,float pitch,float zoom){constexpr double pi=3.14159265358979323846;double yr=yaw*pi/180.0,pr=pitch*pi/180.0;double x=X*std::cos(yr)-Y*std::sin(yr),y=X*std::sin(yr)+Y*std::cos(yr),sy=y*std::cos(pr)-Z*std::sin(pr);return {cx+x*1.5*zoom,cy-sy*1.5*zoom};} }
 void Viewport3D::initializeGL(){
  initializeOpenGLFunctions(); glEnable(GL_DEPTH_TEST); glEnable(GL_PROGRAM_POINT_SIZE); glClearColor(0.06f,0.07f,0.09f,1.0f);
  shader_=new QOpenGLShaderProgram(this);
@@ -22,9 +22,7 @@ void Viewport3D::paintGL(){
   QMatrix4x4 mvp=proj*view;
   std::vector<float> verts; verts.reserve(30000);
   auto addv=[&](const cnc::Vec3& p,float r,float g,float b){verts.insert(verts.end(),{float(p.x),float(p.y),float(p.z),r,g,b});};
-  for(const auto& g:runtime_->machine_geometry()) if(g.loaded()) for(const auto& t:g.triangles()){
-   addv(t.a,0.55f,0.58f,0.62f); addv(t.b,0.55f,0.58f,0.62f); addv(t.c,0.55f,0.58f,0.62f);
-  }
+  const auto& nodes=runtime_->machine_render_nodes(); const auto& ms=runtime_->state(); const auto& kc=runtime_->kinematics().config(); for(size_t gi=0;gi<runtime_->machine_geometry().size();++gi){const auto& g=runtime_->machine_geometry()[gi]; if(!g.loaded())continue; const cnc::MachineNode* node=gi<nodes.size()?&nodes[gi]:nullptr; for(const auto& t:g.triangles()){auto a=node?transformNode(t.a,*node,ms,kc):t.a;auto b=node?transformNode(t.b,*node,ms,kc):t.b;auto d=node?transformNode(t.c,*node,ms,kc):t.c;addv(a,0.55f,0.58f,0.62f);addv(b,0.55f,0.58f,0.62f);addv(d,0.55f,0.58f,0.62f);}}
   const auto& sd=runtime_->stock().definition();
   if(runtime_->stock().cell_count()>0){
    const int nx=std::max(1,int(std::ceil(sd.size_x/std::max(0.001,sd.resolution))));
