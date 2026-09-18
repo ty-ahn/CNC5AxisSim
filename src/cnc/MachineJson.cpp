@@ -1,6 +1,7 @@
 #include "MachineJson.h"
 #include <cctype>
 #include <cmath>
+#include <cstring>
 #include <iomanip>
 #include <sstream>
 namespace cnc {
