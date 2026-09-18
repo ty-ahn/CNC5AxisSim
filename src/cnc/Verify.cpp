@@ -3,7 +3,7 @@
 namespace cnc {
 VerifyResult VerifyEngine::run(const std::vector<Block>& blocks, Runtime runtime){
  static const std::unordered_map<int,std::vector<Block>> empty;
- return run(blocks,empty,std::move(runtime));
+ return run(blocks,empty,runtime);
 }
 VerifyResult VerifyEngine::run(const std::vector<Block>& blocks,const std::unordered_map<int,std::vector<Block>>& subprograms,Runtime runtime){
  VerifyResult r{}; ProgramExecutor ex(runtime); ex.load(blocks);
