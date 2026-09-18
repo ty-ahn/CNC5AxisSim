@@ -5,7 +5,7 @@ find_package(Qt6 COMPONENTS Widgets OpenGLWidgets QUIET)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-add_library(cnc_core src/cnc/Parser.cpp src/cnc/Kinematics.cpp src/cnc/Motion.cpp src/cnc/ArcPlanner.cpp src/cnc/Tooling.cpp src/cnc/Stock.cpp src/cnc/Collision.cpp src/cnc/ProgramExecutor.cpp src/cnc/ProgramLoader.cpp src/cnc/OperatorController.cpp src/cnc/Runtime.cpp src/cnc/Verify.cpp src/cnc/MachineConfig.cpp src/cnc/MachineGeometry.cpp src/cnc/Expression.cpp
+add_library(cnc_core src/cnc/Parser.cpp src/cnc/Kinematics.cpp src/cnc/Motion.cpp src/cnc/ArcPlanner.cpp src/cnc/Tooling.cpp src/cnc/Stock.cpp src/cnc/Collision.cpp src/cnc/ProgramExecutor.cpp src/cnc/ProgramLoader.cpp src/cnc/OperatorController.cpp src/cnc/Runtime.cpp src/cnc/Verify.cpp src/cnc/MachineConfig.cpp src/cnc/MachineGeometry.cpp src/cnc/Bvh.cpp src/cnc/Expression.cpp
  src/cnc/ProgramCatalog.cpp)
 target_include_directories(cnc_core PUBLIC src)
 add_executable(CNC5AxisSim src/main.cpp)
